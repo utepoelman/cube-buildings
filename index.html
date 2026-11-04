@@ -1,0 +1,1062 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cube buildings</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;600&display=swap">
+<style>
+:root{
+  --bg:#f1f5f3;--card:#fff;--ink:#17303a;--muted:#587079;--edge:#14323a;--rule:#d5e0dd;
+  --top:#a3e4d3;--front:#3fb3a6;--side:#23808c;--accent:#e4572e;--accent-ink:#fff;
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){--bg:#0f1a1e;--card:#172429;--ink:#e6f1ef;--muted:#9bb2b8;--edge:#0a1114;--rule:#2a3d43;--top:#6fcdb9;--front:#2f9488;--side:#1d6a74}
+}
+:root[data-theme="dark"]{--bg:#0f1a1e;--card:#172429;--ink:#e6f1ef;--muted:#9bb2b8;--edge:#0a1114;--rule:#2a3d43;--top:#6fcdb9;--front:#2f9488;--side:#1d6a74}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.5 "Lexend",system-ui,-apple-system,"Segoe UI",sans-serif}
+header,main{max-width:1100px;margin:0 auto;padding:0 16px}
+header{padding-top:24px}
+h1{font-size:clamp(1.8rem,5vw,2.6rem);line-height:1.1;margin:0 0 6px;font-weight:600}
+h2{font-size:1.05rem;margin:0 0 12px;font-weight:600}
+header p{margin:0 0 20px;color:var(--muted);max-width:60ch}
+main{display:grid;gap:16px;padding-bottom:40px}
+@media(min-width:900px){main{grid-template-columns:360px 1fr}.views{grid-column:1/-1}}
+.panel{background:var(--card);border:1px solid var(--rule);border-radius:14px;padding:16px;min-width:0}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+button,select{font:inherit;color:var(--ink);background:var(--card);border:1.5px solid var(--rule);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)}
+button:focus-visible,select:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.seg{display:inline-flex;gap:0}.seg button{border-radius:0}.seg button:first-child{border-radius:8px 0 0 8px}.seg button:last-child{border-radius:0 8px 8px 0}
+.planwrap{display:grid;grid-template-columns:auto 1fr auto;grid-template-rows:auto 1fr auto;gap:4px;align-items:center;justify-items:center;margin:8px 0 12px}
+.planwrap .lab{font-size:.8rem;color:var(--muted)}
+.lab.b{grid-column:2}.lab.f{grid-column:2;grid-row:3}.lab.l{grid-column:1;grid-row:2;writing-mode:vertical-rl;transform:rotate(180deg)}.lab.r{grid-column:3;grid-row:2;writing-mode:vertical-rl}
+.plan{grid-column:2;grid-row:2;display:grid;gap:4px;width:100%;max-width:300px}
+.cell{aspect-ratio:1;font-size:1.4rem;font-weight:600;padding:0;border-radius:8px;border:1.5px solid var(--edge);background:var(--card)}
+.cell.z{color:var(--muted);font-weight:400}
+.stats{display:flex;flex-wrap:wrap;gap:6px 18px;margin:10px 0 0;color:var(--muted);font-size:.9rem}
+.stats b{color:var(--ink)}
+.hint{font-size:.85rem;color:var(--muted);margin:8px 0 0}
+.isowrap{display:flex;justify-content:center;overflow-x:auto}
+svg{max-width:100%;height:auto;display:block}
+.vgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px}
+.fig{margin:0;display:flex;flex-direction:column;align-items:center;gap:6px}
+.fig figcaption{font-size:.85rem;color:var(--muted);text-align:center}
+.fig figcaption b{color:var(--ink);font-weight:600}
+.sq{stroke:var(--edge);stroke-width:1.5}
+.t{fill:var(--top)}.f{fill:var(--front)}.s{fill:var(--side)}
+.floor{fill:none;stroke:var(--rule);stroke-width:1.5}
+.ground{stroke:var(--muted);stroke-width:2}
+.empty{fill:none;stroke:var(--rule);stroke-width:1.5}
+text.n{font:600 14px "Lexend",system-ui,sans-serif;fill:var(--edge);text-anchor:middle;dominant-baseline:central}
+.layers{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.layers div{display:flex;flex-direction:column;align-items:center;font-size:.75rem;color:var(--muted)}
+label.chk{display:flex;gap:6px;align-items:center;font-size:.85rem;color:var(--muted)}
+[hidden]{display:none!important}
+.opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin:16px 0}
+.opt{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px;border-radius:12px;border:2px solid var(--rule);background:var(--card)}
+.opt .ol{font-weight:600}
+.opt.ok{border-color:#2e9e5b;background:color-mix(in srgb,#2e9e5b 16%,var(--card))}
+.opt.no{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,var(--card))}
+#qtext{font-weight:600;margin:8px 0 12px}
+#qfb{margin:0 0 10px;min-height:1.5em}
+.score{margin:0 0 0 auto}
+.ed{fill:none;stroke:var(--edge);stroke-width:1.5;stroke-linecap:round}
+.dsh{stroke-width:1;stroke-dasharray:3 3;opacity:.75}
+.mg{stroke-width:1;stroke-linejoin:round}.mg.t{stroke:var(--top)}.mg.f{stroke:var(--front)}.mg.s{stroke:var(--side)}
+.fs{display:flex;gap:6px;align-items:center;font-size:.85rem;color:var(--muted)}
+.dwrap{display:flex;flex-wrap:wrap;gap:24px;justify-content:center;align-items:flex-start;margin:8px 0 12px}
+.dq0{fill:transparent;stroke:var(--rule);stroke-width:1.5}
+.hit{fill:transparent;stroke:var(--muted);stroke-width:1;stroke-opacity:.5}
+[data-k]{cursor:pointer}
+.dq0:hover,.hit:hover{fill:color-mix(in srgb,var(--front) 25%,transparent)}
+.ex{fill:color-mix(in srgb,var(--accent) 55%,var(--card))}
+.ms{fill:none;stroke:var(--accent);stroke-width:3}
+.bold{stroke-width:3}.dsh.bold{stroke-dasharray:7 5}
+.wr{stroke:var(--accent)!important}
+.msl{stroke:var(--accent);stroke-width:4;opacity:.45;stroke-linecap:round}
+.hitl{stroke:transparent;stroke-width:16;fill:none}
+.hitl:hover{stroke:color-mix(in srgb,var(--front) 35%,transparent)}
+h3{font-size:.95rem;margin:18px 0 8px}
+input[type=text]{font:inherit;color:var(--ink);background:var(--card);border:1.5px solid var(--rule);border-radius:8px;padding:6px 10px;min-width:200px}
+.wb{display:flex;gap:12px;align-items:center;margin:6px 0;padding:8px;border:1px solid var(--rule);border-radius:10px}
+.wbt{width:110px;flex:none}
+.sheet{--ink:#000;--muted:#555;--edge:#14323a;--rule:#bbb;--card:#fff;--top:#a3e4d3;--front:#3fb3a6;--side:#23808c;background:#fff;color:#000;border:1px solid var(--rule);border-radius:6px;padding:24px;max-width:780px;margin:12px auto}
+.wtitle{font-size:1.5rem;margin:0 0 6px}
+.wnd{margin:0 0 18px}
+.wtask{display:grid;grid-template-columns:minmax(0,38fr) minmax(0,62fr);gap:6px 18px;margin:0 0 12px;padding-bottom:12px;border-bottom:1px dashed #ccc;break-inside:avoid}
+@media (max-width:600px){.wtask{grid-template-columns:1fr}}
+.wresp{display:flex;flex-direction:column;align-items:center;justify-content:center}
+.wkimg{width:150px}
+.wq{margin:0;grid-column:1/-1}
+.wfig{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start;justify-content:center}
+.wopts{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;width:100%}
+.wopt{border:1px solid #bbb;border-radius:10px;padding:10px;display:flex;align-items:center;justify-content:center}
+.wans{margin:8px 0 0}
+.dot{fill:#666}
+.wk{margin:0 0 10px;break-inside:avoid}
+.wk .hint{margin:2px 0}
+@media print{
+  body{background:#fff}
+  header,main>section:not(#ws),.noprint{display:none!important}
+  main{display:block;padding:0;max-width:none}
+  #ws{border:0;padding:0;background:#fff}
+  .sheet{border:0;padding:0;max-width:none;margin:0}
+  .sheet,.sheet *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .wkey{break-before:page}
+  @page{margin:12mm}
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>Cube buildings</h1>
+  <p>Each number is how many cubes are stacked on that square. Change the plan and see the building from every side.</p>
+<div class="seg" role="group" aria-label="Mode" style="margin-bottom:16px"><button id="tabEx" aria-pressed="true">Explore</button><button id="tabQ" aria-pressed="false">Challenge</button><button id="tabD" aria-pressed="false">Draw</button><button id="tabW" aria-pressed="false">Worksheet</button></div>
+</header>
+<main>
+  <section class="panel ex" aria-labelledby="ph">
+    <h2 id="ph">Building plan</h2>
+    <div class="row">
+      <label for="size">Grid</label>
+      <select id="size"><option>3</option><option selected>4</option><option>5</option><option>6</option></select>
+      <div class="seg" role="group" aria-label="Tap action">
+        <button id="add" aria-pressed="true">Add cube</button>
+        <button id="rem" aria-pressed="false">Remove cube</button>
+      </div>
+    </div>
+    <div class="planwrap">
+      <span class="lab b">Back</span><span class="lab l">Left</span>
+      <div class="plan" id="plan"></div>
+      <span class="lab r">Right</span><span class="lab f">Front (you are here)</span>
+    </div>
+    <div class="row" id="presets"></div>
+    <div class="stats" id="stats" aria-live="polite"></div>
+    <p class="hint">Tip: select a square and type 0–9, or use the up and down arrow keys. Right-click removes a cube.</p>
+  </section>
+
+  <section class="panel ex" aria-labelledby="ih">
+    <h2 id="ih">Isometric drawing</h2>
+    <div class="row">
+      <button id="ccw" aria-label="Rotate view anticlockwise">↺</button>
+      <div class="seg" id="cams" role="group" aria-label="Viewing direction"></div>
+      <button id="cw" aria-label="Rotate view clockwise">↻</button>
+    </div>
+    <div class="isowrap" id="iso"></div>
+  </section>
+
+  <section class="panel views ex" aria-labelledby="vh">
+    <h2 id="vh">Views</h2>
+    <div class="row"><label class="chk"><input type="checkbox" id="nums"> Show cube counts on the top view</label>
+      <label class="fs">Faces <select class="fstyle"><option value="cubes">Single cubes</option><option value="faces">Merged faces</option><option value="dashed">Merged, hidden edges dashed</option></select></label></div>
+    <div class="vgrid" id="views"></div>
+  </section>
+<section class="panel views" id="quiz" hidden aria-labelledby="qh">
+    <h2 id="qh">Challenge</h2>
+    <div class="row">
+      <label for="qtype">Question</label>
+      <select id="qtype">
+        <option value="mix">Mixed</option>
+        <option value="plan-iso">Plan to drawing</option>
+        <option value="iso-plan">Drawing to plan</option>
+        <option value="views-plan">Views to plan</option>
+        <option value="plan-view">Plan to view</option>
+      </select>
+      <label for="qsize">Level</label>
+      <select id="qsize"><option value="2">1: 2×2×2</option><option value="3" selected>2: 3×3×3</option><option value="4">3: 4×4×4</option></select>
+      <label class="fs">Faces <select class="fstyle"><option value="cubes">Single cubes</option><option value="faces">Merged faces</option><option value="dashed">Merged, hidden edges dashed</option></select></label>
+      <span class="stats score" id="score" aria-live="polite"></span>
+    </div>
+    <p id="qtext"></p>
+    <div class="layers" id="qprompt"></div>
+    <div class="opts" id="qopts"></div>
+    <p id="qfb" role="status"></p>
+    <div class="row"><button id="qnext" hidden>Next question</button><button id="qopen" hidden>Open this building in Explore</button></div>
+  </section>
+<section class="panel views" id="draw" hidden aria-labelledby="dh">
+    <h2 id="dh">Draw it yourself</h2>
+    <div class="row">
+      <label for="dtask">Draw</label>
+      <select id="dtask">
+        <option value="mix">Mixed</option>
+        <option value="front">Front view</option>
+        <option value="right">Right view</option>
+        <option value="back">Back view</option>
+        <option value="left">Left view</option>
+        <option value="iso">Isometric drawing</option>
+        <option value="edges">Elevation with hidden edges</option>
+        <option value="tv">Top view from two views</option>
+        <option value="bp">Building plan from two views</option>
+      </select>
+      <label for="dsize">Level</label>
+      <select id="dsize"><option value="2">1: 2×2×2</option><option value="3" selected>2: 3×3×3</option><option value="4">3: 4×4×4</option></select>
+      <button id="dnew">New building</button>
+      <span class="stats score" id="dscore" aria-live="polite"></span>
+    </div>
+    <p id="dtext" style="font-weight:600;margin:8px 0 12px"></p>
+    <div class="row" id="dbrush" hidden>
+      <span class="fs">Paint</span>
+      <div class="seg" role="group" aria-label="Kind of face">
+        <button data-b="t" aria-pressed="true">Top faces</button><button data-b="f" aria-pressed="false">Left faces</button><button data-b="s" aria-pressed="false">Right faces</button><button data-b="e" aria-pressed="false">Erase</button>
+      </div>
+    </div>
+    <div class="dwrap"><div id="dprompt"></div><div id="dcanvas"></div></div>
+    <p id="dfb" role="status"></p>
+    <div class="row"><button id="dcheck">Check</button><button id="dshow">Show answer</button><button id="dclear">Clear</button></div>
+  </section>
+<section class="panel views" id="ws" hidden aria-labelledby="wh">
+    <div class="noprint">
+      <h2 id="wh">Worksheet maker</h2>
+      <p class="hint">Collect buildings, choose tasks for them, and print the sheet (or save it as a PDF from the print dialog). Drawing tasks come with dot grids.</p>
+      <div class="row">
+        <label for="wstitle">Title</label><input type="text" id="wstitle" value="Cube buildings">
+        <label class="chk"><input type="checkbox" id="wsnd" checked> Name and date line</label>
+        <label class="chk"><input type="checkbox" id="wskey" checked> Answer key</label>
+        <label class="fs">Faces <select class="fstyle"><option value="cubes">Single cubes</option><option value="faces">Merged faces</option><option value="dashed">Merged, hidden edges dashed</option></select></label>
+      </div>
+      <h3>1. Buildings</h3>
+      <div id="wsbl"></div>
+      <div class="row"><button id="wsAddR">Add a random building</button></div>
+      <h3>2. Tasks</h3>
+      <div class="row"><select id="wsb" aria-label="Building"></select><select id="wst" aria-label="Task"></select><select id="wsc" aria-label="Corner for isometric tasks"></select><button id="wsAddT">Add task</button></div>
+      <ol id="wstl"></ol>
+      <div class="row"><button id="wsPrint">Print or save as PDF</button><span id="wsmsg" class="hint"></span></div>
+      <h3>Preview</h3>
+    </div>
+    <div id="wsheet"></div>
+  </section>
+</main>
+
+<script>
+(function(){
+  var $ = function(s){return document.querySelector(s)};
+  var n = 4, mode = 1, cam = 0;
+  var h = zeros(n);
+  function zeros(k){var a=[];for(var i=0;i<k;i++)a.push(new Array(k).fill(0));return a}
+  var CAMS = ["Front right","Back right","Back left","Front left"];
+
+  /* ---------- plan editor ---------- */
+  var cells = [];
+  function buildPlan(){
+    var p = $("#plan"); p.innerHTML = ""; cells = [];
+    p.style.gridTemplateColumns = "repeat("+n+",1fr)";
+    for(var r=0;r<n;r++)for(var c=0;c<n;c++){
+      (function(r,c){
+        var b = document.createElement("button");
+        b.className = "cell";
+        b.addEventListener("click", function(e){ change(r,c, e.shiftKey ? -mode : mode); });
+        b.addEventListener("contextmenu", function(e){ e.preventDefault(); change(r,c,-1); });
+        b.addEventListener("keydown", function(e){
+          if(/^[0-9]$/.test(e.key)){ set(r,c,+e.key); e.preventDefault(); }
+          else if(e.key==="ArrowUp"){ change(r,c,1); e.preventDefault(); }
+          else if(e.key==="ArrowDown"){ change(r,c,-1); e.preventDefault(); }
+          else if(e.key==="Backspace"||e.key==="Delete"){ set(r,c,0); e.preventDefault(); }
+        });
+        p.appendChild(b); cells.push(b);
+      })(r,c);
+    }
+    refresh();
+  }
+  function set(r,c,v){ h[r][c] = Math.max(0,Math.min(9,v)); refresh(); }
+  function change(r,c,d){ set(r,c,h[r][c]+d); }
+
+  /* ---------- helpers ---------- */
+  function maxH(){ var m=0; h.forEach(function(row){row.forEach(function(v){m=Math.max(m,v)})}); return m; }
+  function svgWrap(w,hh,inner,label){
+    return '<svg width="'+w+'" height="'+hh+'" viewBox="0 0 '+w+' '+hh+'" role="img" aria-label="'+label+'">'+inner+'</svg>';
+  }
+  function colMax(get){ // get(i,j) -> height; returns max over j for each i
+    var out=[]; for(var i=0;i<n;i++){var m=0;for(var j=0;j<n;j++)m=Math.max(m,get(i,j));out.push(m)} return out;
+  }
+  /* views as seen by someone standing at that side, left to right */
+  var elev = {
+    front:function(){return colMax(function(i,j){return h[j][i]})},
+    right:function(){return colMax(function(i,j){return h[n-1-i][j]})},
+    back: function(){return colMax(function(i,j){return h[j][n-1-i]})},
+    left: function(){return colMax(function(i,j){return h[i][j]})}
+  };
+
+  function elevation(arr,cls,label,Hm,D){var n=arr.length;
+    var c=30,pad=4,H=Math.max(Hm||maxH(),1),w=n*c+pad*2,hh=H*c+pad*2,s="";
+    if(D&&style!=="cubes"){
+      for(var i=0;i<n;i++)for(var k=0;k<arr[i];k++)s+='<rect class="mg '+cls+'" x="'+(pad+i*c)+'" y="'+(pad+(H-1-k)*c)+'" width="'+c+'" height="'+c+'"/>';
+      var segs={};
+      (D.E||[]).forEach(function(e){
+        var hid=false,pr=e[0]===e[2]?[[e[0]-1,e[1]],[e[0],e[1]]]:[[e[0],e[1]-1],[e[0],e[1]]];
+        pr.forEach(function(q){var a=q[0],b=q[1];if(a>=0&&a<n&&b>=0&&b<arr[a]&&D[a][b]!=null&&D[a][b]<e[4])hid=true});
+        var kk=e.slice(0,4).join(),o=segs[kk]||(segs[kk]={e:e,vis:false});
+        if(!hid)o.vis=true;
+      });
+      var sol="",das="";
+      Object.keys(segs).forEach(function(kk){
+        var e=segs[kk].e,m="M"+(pad+e[0]*c)+" "+(pad+(H-e[1])*c)+"L"+(pad+e[2]*c)+" "+(pad+(H-e[3])*c);
+        if(segs[kk].vis)sol+=m;else das+=m;
+      });
+      s+='<path class="ed" d="'+sol+'"/>'+(style==="dashed"&&das?'<path class="ed dsh" d="'+das+'"/>':'');
+      s+='<line class="ground" x1="0" x2="'+w+'" y1="'+(hh-pad)+'" y2="'+(hh-pad)+'"/>';
+      return svgWrap(w,hh,s,label);
+    }
+    for(var i=0;i<n;i++){
+      for(var k=0;k<arr[i];k++) s+='<rect class="sq '+cls+'" x="'+(pad+i*c)+'" y="'+(pad+(H-k-1)*c)+'" width="'+c+'" height="'+c+'"/>';
+    }
+    s+='<line class="ground" x1="0" x2="'+w+'" y1="'+(hh-pad)+'" y2="'+(hh-pad)+'"/>';
+    return svgWrap(w,hh,s,label);
+  }
+  function topView(force){
+    var c=30,pad=4,w=n*c+pad*2,s="",showN=force||$("#nums").checked;
+    if(style!=="cubes"){
+      s=faceInner(n,n,function(x,y){return h[y][x]>0?h[y][x]:null},c,pad,"t",false);
+      if(showN){for(var r=0;r<n;r++)for(var k=0;k<n;k++)if(h[r][k]>0)s+='<text class="n" x="'+(pad+k*c+c/2)+'" y="'+(pad+r*c+c/2)+'">'+h[r][k]+'</text>'}
+      return svgWrap(w,w,s,"Top view");
+    }
+    for(var r=0;r<n;r++)for(var k=0;k<n;k++){
+      var x=pad+k*c,y=pad+r*c;
+      if(h[r][k]>0){
+        s+='<rect class="sq t" x="'+x+'" y="'+y+'" width="'+c+'" height="'+c+'"/>';
+        if(showN) s+='<text class="n" x="'+(x+c/2)+'" y="'+(y+c/2)+'">'+h[r][k]+'</text>';
+      } else s='<rect class="empty" x="'+x+'" y="'+y+'" width="'+c+'" height="'+c+'"/>'+s;
+    }
+    return svgWrap(w,w,s,"Top view");
+  }
+  function layers(){
+    var M=maxH(),out="";
+    if(!M) return '<span style="color:var(--muted);font-size:.85rem">No cubes yet</span>';
+    for(var L=1;L<=M;L++){
+      var c=16,pad=2,w=n*c+pad*2,s="";
+      for(var r=0;r<n;r++)for(var k=0;k<n;k++){
+        s= h[r][k]>=L
+          ? s+'<rect class="sq t" x="'+(pad+k*c)+'" y="'+(pad+r*c)+'" width="'+c+'" height="'+c+'"/>'
+          : '<rect class="empty" x="'+(pad+k*c)+'" y="'+(pad+r*c)+'" width="'+c+'" height="'+c+'"/>'+s;
+      }
+      out+='<div>'+svgWrap(w,w,s,"Layer "+L)+'Layer '+L+'</div>';
+    }
+    return '<div class="layers">'+out+'</div>';
+  }
+
+  /* ---------- isometric ---------- */
+  function rotate(g){
+    var o=zeros(n);
+    for(var R=0;R<n;R++)for(var C=0;C<n;C++)o[R][C]=g[n-1-C][R];
+    return o;
+  }
+  function iso(cm,Hm){ if(cm==null)cm=cam;
+    var g=h; for(var i=0;i<cm;i++) g=rotate(g);
+    var u=36,kx=0.866*u,ky=0.5*u,H=Math.max(Hm||maxH(),1);
+    function P(x,y,z){return [(x-y)*kx,(x+y)*ky-z*u]}
+    function pts(a){return a.map(function(p){var q=P(p[0],p[1],p[2]);return q[0].toFixed(1)+","+q[1].toFixed(1)}).join(" ")}
+    var body="";
+    // floor and grid lines
+    for(var i=0;i<=n;i++){
+      var a=P(i,0,0),b=P(i,n,0),c=P(0,i,0),d=P(n,i,0);
+      body+='<path class="floor" d="M'+a[0]+' '+a[1]+'L'+b[0]+' '+b[1]+'M'+c[0]+' '+c[1]+'L'+d[0]+' '+d[1]+'"/>';
+    }
+    function at(R,C){return (R<0||C<0||R>=n||C>=n)?0:g[R][C]}
+    var faces=[];
+    function face(cl,a,pl){ if(style==="cubes") body+='<polygon class="sq '+cl+'" points="'+pts(a)+'"/>'; else faces.push([cl,a,pl]); }
+    for(var R=0;R<n;R++)for(var C=0;C<n;C++)for(var z=0;z<g[R][C];z++){
+      if(z>=at(R+1,C)) face("f",[[C,R+1,z],[C+1,R+1,z],[C+1,R+1,z+1],[C,R+1,z+1]],"F"+(R+1));
+      if(z>=at(R,C+1)) face("s",[[C+1,R,z],[C+1,R+1,z],[C+1,R+1,z+1],[C+1,R,z+1]],"S"+(C+1));
+      if(z===g[R][C]-1) face("t",[[C,R,z+1],[C+1,R,z+1],[C+1,R+1,z+1],[C,R+1,z+1]],"T"+(z+1));
+    }
+    if(faces.length&&0){
+      var em={};
+      var ek=function(p,q){var a=p.join(),b=q.join();return a<b?a+"|"+b:b+"|"+a};
+      faces.forEach(function(f){for(var i=0;i<4;i++){var k=ek(f[1][i],f[1][(i+1)%4]);(em[k]=em[k]||[]).push(f[2])}});
+      faces.forEach(function(f){
+        var sol="",das="";
+        for(var i=0;i<4;i++){
+          var p=f[1][i],q=f[1][(i+1)%4],L=em[ek(p,q)],inner=L.length===2&&L[0]===L[1];
+          var A=P(p[0],p[1],p[2]),B=P(q[0],q[1],q[2]);
+          var seg="M"+A[0].toFixed(1)+" "+A[1].toFixed(1)+"L"+B[0].toFixed(1)+" "+B[1].toFixed(1);
+          if(inner)das+=seg;else sol+=seg;
+        }
+        body+='<polygon class="mg '+f[0]+'" points="'+pts(f[1])+'"/><path class="ed" d="'+sol+'"/>'+(style==="dashed"&&das?'<path class="ed dsh" d="'+das+'"/>':'');
+      });
+    }
+    if(faces.length){
+      faces.forEach(function(f){body+='<polygon class="mg '+f[0]+'" points="'+pts(f[1])+'"/>'});
+      var sol2="",das2="";
+      featureEdges(g).forEach(function(e){
+        var p=e[0],q=e[1],mx=(p[0]+q[0])/2,my=(p[1]+q[1])/2,mz=(p[2]+q[2])/2,hid=false;
+        // follow the line of sight towards the viewer: any cube in the way hides the edge
+        for(var t=0.25;t<=n+1&&!hid;t+=0.5){
+          var C2=Math.floor(mx+t),R2=Math.floor(my+t),z2=Math.floor(mz+t);
+          if(C2<n&&R2<n&&z2<g[R2][C2])hid=true;
+        }
+        var A=P(p[0],p[1],p[2]),B=P(q[0],q[1],q[2]);
+        var seg="M"+A[0].toFixed(1)+" "+A[1].toFixed(1)+"L"+B[0].toFixed(1)+" "+B[1].toFixed(1);
+        if(hid)das2+=seg;else sol2+=seg;
+      });
+      body+='<path class="ed" d="'+sol2+'"/>'+(style==="dashed"&&das2?'<path class="ed dsh" d="'+das2+'"/>':'');
+    }
+    var minX=-n*kx,maxX=n*kx,minY=-H*u,maxY=2*n*ky,pad=12;
+    var w=Math.round(maxX-minX+pad*2),hh=Math.round(maxY-minY+pad*2);
+    return '<svg width="'+w+'" height="'+hh+'" viewBox="'+(minX-pad)+' '+(minY-pad)+' '+w+' '+hh+'" role="img" aria-label="Isometric drawing from the '+CAMS[cm].toLowerCase()+'">'+body+'</svg>';
+  }
+
+  /* ---------- merged faces ---------- */
+  var style="cubes";
+  /* sharp edges of the solid: unit edges where two faces of the surface are not in one plane */
+  function featureEdges(g){
+    var m=g.length,F=[],em={};
+    function at(R,C){return(R<0||C<0||R>=m||C>=m)?0:g[R][C]}
+    for(var R=0;R<m;R++)for(var C=0;C<m;C++){
+      var v=g[R][C];if(!v)continue;
+      F.push(["B",[[C,R,0],[C+1,R,0],[C+1,R+1,0],[C,R+1,0]]]);
+      F.push(["T"+v,[[C,R,v],[C+1,R,v],[C+1,R+1,v],[C,R+1,v]]]);
+      for(var z=0;z<v;z++){
+        if(z>=at(R+1,C))F.push(["S"+(R+1),[[C,R+1,z],[C+1,R+1,z],[C+1,R+1,z+1],[C,R+1,z+1]]]);
+        if(z>=at(R-1,C))F.push(["N"+R,[[C,R,z],[C+1,R,z],[C+1,R,z+1],[C,R,z+1]]]);
+        if(z>=at(R,C+1))F.push(["E"+(C+1),[[C+1,R,z],[C+1,R+1,z],[C+1,R+1,z+1],[C+1,R,z+1]]]);
+        if(z>=at(R,C-1))F.push(["W"+C,[[C,R,z],[C,R+1,z],[C,R+1,z+1],[C,R,z+1]]]);
+      }
+    }
+    F.forEach(function(f){
+      for(var i=0;i<4;i++){
+        var p=f[1][i],q=f[1][(i+1)%4],a=p.join(),b=q.join(),k=a<b?a+"|"+b:b+"|"+a;
+        var o=em[k]||(em[k]={e:[p,q],pl:[]});o.pl.push(f[0]);
+      }
+    });
+    return Object.keys(em).map(function(k){return em[k]}).filter(function(o){return o.pl.some(function(x){return x!==o.pl[0]})}).map(function(o){return o.e});
+  }
+  /* the same edges seen from one side: [u1,v1,u2,v2,distance from viewer] */
+  function elevEdges(s){
+    var m=n,out=[];
+    function tr(q){var x=q[0],y=q[1],z=q[2];return s==="front"?[x,z,m-y]:s==="right"?[m-y,z,m-x]:s==="back"?[m-x,z,y]:[y,z,x]}
+    featureEdges(h).forEach(function(e){
+      var a=tr(e[0]),b=tr(e[1]);
+      if(a[0]===b[0]&&a[1]===b[1])return;
+      if(a[1]===0&&b[1]===0)return;
+      out.push([Math.min(a[0],b[0]),Math.min(a[1],b[1]),Math.max(a[0],b[0]),Math.max(a[1],b[1]),a[2]]);
+    });
+    return out;
+  }
+  // cell(i,j): cube stack seen at position i, j steps away from the viewer
+  var acc={
+    front:function(i,j){return h[n-1-j][i]},
+    right:function(i,j){return h[n-1-i][n-1-j]},
+    back:function(i,j){return h[j][n-1-i]},
+    left:function(i,j){return h[i][j]}
+  };
+  function depthOf(s){ // depth of the nearest cube in each visible square
+    var D=[];
+    for(var i=0;i<n;i++){var col=[];
+      for(var k=0;k<10;k++){var d=null;for(var j=0;j<n;j++)if(acc[s](i,j)>k){d=j;break}col.push(d)}
+      D.push(col);
+    }
+    D.E=elevEdges(s);
+    return D;
+  }
+  function elv(s){return elevation(elev[s](),(s==="front"||s==="back")?"f":"s",s+" view",0,depthOf(s))}
+  /* squares with equal depth join into one face; get(x,y) gives a depth or null */
+  function faceInner(W,Hh,get,c,pad,cl,dashed){
+    var s="",sol="",das="",x,y;
+    for(y=0;y<Hh;y++)for(x=0;x<W;x++)if(get(x,y)!=null)s+='<rect class="mg '+cl+'" x="'+(pad+x*c)+'" y="'+(pad+y*c)+'" width="'+c+'" height="'+c+'"/>';
+    function kind(a,b){if(a==null&&b==null)return 0;return(a==null||b==null||a!==b)?1:2}
+    for(y=0;y<Hh;y++)for(x=0;x<=W;x++){
+      var e=kind(x>0?get(x-1,y):null,x<W?get(x,y):null),m="M"+(pad+x*c)+" "+(pad+y*c)+"v"+c;
+      if(e===1)sol+=m;else if(e===2)das+=m;
+    }
+    for(y=0;y<=Hh;y++)for(x=0;x<W;x++){
+      var e2=kind(y>0?get(x,y-1):null,y<Hh?get(x,y):null),m2="M"+(pad+x*c)+" "+(pad+y*c)+"h"+c;
+      if(e2===1)sol+=m2;else if(e2===2)das+=m2;
+    }
+    return s+'<path class="ed" d="'+sol+'"/>'+(dashed&&das?'<path class="ed dsh" d="'+das+'"/>':'');
+  }
+
+  /* ---------- render ---------- */
+  function fig(svg,cap){return '<figure class="fig">'+svg+'<figcaption>'+cap+'</figcaption></figure>'}
+  function refresh(){
+    for(var r=0;r<n;r++)for(var c=0;c<n;c++){
+      var b=cells[r*n+c],v=h[r][c];
+      b.textContent=v; b.className="cell"+(v?"":" z");
+      b.style.background=v?"color-mix(in srgb, var(--front) "+(v*8)+"%, var(--card))":"";
+      b.setAttribute("aria-label","Row "+(r+1)+", column "+(c+1)+": "+v+" cubes");
+    }
+    var tot=0,sa=0,tops=0;
+    for(r=0;r<n;r++)for(c=0;c<n;c++){
+      var v2=h[r][c];tot+=v2; if(v2)tops++;
+      [[1,0],[-1,0],[0,1],[0,-1]].forEach(function(d){
+        var rr=r+d[0],cc=c+d[1],nb=(rr<0||cc<0||rr>=n||cc>=n)?0:h[rr][cc];
+        sa+=Math.max(0,v2-nb);
+      });
+    }
+    sa+=tops*2;
+    $("#stats").innerHTML='<span>Cubes <b>'+tot+'</b></span><span>Tallest stack <b>'+maxH()+'</b></span><span>Surface area <b>'+sa+'</b> squares (including the bottom)</span>';
+    $("#iso").innerHTML=iso();
+    $("#views").innerHTML=
+      fig(elv("front"),"<b>Front view</b>")+
+      fig(elv("right"),"<b>Right view</b>")+
+      fig(elv("back"),"<b>Back view</b>")+
+      fig(elv("left"),"<b>Left view</b>")+
+      fig(topView(),"<b>Top view</b><br>Front is at the bottom")+
+      fig(layers(),"<b>Layer by layer</b><br>Looking down at each level");
+    Array.prototype.forEach.call($("#cams").children,function(b,i){b.setAttribute("aria-pressed",String(i===cam))});
+  }
+
+  /* ---------- controls ---------- */
+  $("#size").addEventListener("change",function(){
+    var m=+this.value,old=h; h=zeros(m);
+    for(var r=0;r<Math.min(m,n);r++)for(var c=0;c<Math.min(m,n);c++)h[r][c]=old[r][c];
+    n=m; buildPlan();
+  });
+  function setMode(m){mode=m;$("#add").setAttribute("aria-pressed",String(m===1));$("#rem").setAttribute("aria-pressed",String(m===-1))}
+  $("#add").onclick=function(){setMode(1)}; $("#rem").onclick=function(){setMode(-1)};
+  $("#nums").onchange=refresh;
+  CAMS.forEach(function(name,i){
+    var b=document.createElement("button");b.textContent=name;b.onclick=function(){cam=i;refresh()};$("#cams").appendChild(b);
+  });
+  $("#ccw").onclick=function(){cam=(cam+1)%4;refresh()};
+  $("#cw").onclick=function(){cam=(cam+3)%4;refresh()};
+
+  var presets={
+    "Stairs":function(r,c){return c+1>9?9:c+1},
+    "Pyramid":function(r,c){return Math.min(r,c,n-1-r,n-1-c)+1},
+    "L shape":function(r,c){return (r===n-1&&c===0)?3:(r===n-1||c===0)?2:0},
+    "Random":function(){return Math.random()<0.25?0:1+Math.floor(Math.random()*4)},
+    "Clear":function(){return 0}
+  };
+  Object.keys(presets).forEach(function(k){
+    var b=document.createElement("button");b.textContent=k;
+    b.onclick=function(){for(var r=0;r<n;r++)for(var c=0;c<n;c++)h[r][c]=presets[k](r,c);refresh()};
+    $("#presets").appendChild(b);
+  });
+
+  /* ---------- challenge ---------- */
+  var Q=null,score={ok:0,total:0,streak:0};
+  function rnd(k){return Math.floor(Math.random()*k)}
+  function shuf(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=rnd(i+1),t=a[i];a[i]=a[j];a[j]=t}return a}
+  function withGrid(g,fn){var oh=h,on=n;h=g;n=g.length;try{return fn()}finally{h=oh;n=on}}
+  function vw(g,s){return withGrid(g,function(){return elev[s]()})}
+  function vwd(g,s){return withGrid(g,function(){return depthOf(s)})}
+  function planSvg(g){var st=style;style="cubes";try{return withGrid(g,function(){return topView(true)})}finally{style=st}}
+  function isoSvg(g,cm,H){return withGrid(g,function(){return iso(cm,H||Math.max(n,maxH()))})}
+  function key(g){return JSON.stringify(g)}
+  function randGrid(m){
+    var g,tot,mx;
+    do{g=zeros(m);tot=0;mx=0;
+      for(var r=0;r<m;r++)for(var c=0;c<m;c++){var v=Math.random()<0.2?0:1+rnd(m);g[r][c]=v;tot+=v;mx=Math.max(mx,v)}
+    }while(tot<m+2||mx<2);
+    return g;
+  }
+  function mutate(g){
+    var m=g.length,top=Math.max(m,Math.max.apply(null,[].concat.apply([],g))),o=g.map(function(r){return r.slice()}),op=rnd(6),r=rnd(m),c=rnd(m);
+    if(op<2){o[r][c]=Math.max(0,Math.min(top,o[r][c]+(Math.random()<0.5?1:-1)))}
+    else if(op===2){var r2=rnd(m),c2=rnd(m),t=o[r][c];o[r][c]=o[r2][c2];o[r2][c2]=t}
+    else if(op===3){o=o.map(function(row){return row.slice().reverse()})}
+    else if(op===4){o=o[0].map(function(_,i){return o.map(function(row){return row[i]})})}
+    else{o[r][c]=Math.max(0,Math.min(top,o[r][c]+1));var r3=rnd(m),c3=rnd(m);o[r3][c3]=Math.max(0,o[r3][c3]-1)}
+    return o;
+  }
+  function distractors(t,ok,cnt){
+    var out=[],seen={};seen[key(t)]=1;
+    for(var i=0;i<500&&out.length<cnt;i++){
+      var d=mutate(t); if(Math.random()<0.3)d=mutate(d);
+      var k=key(d); if(seen[k]||!ok(d))continue;
+      seen[k]=1;out.push(d);
+    }
+    return out;
+  }
+  /* picture signature of an isometric drawing, so two options never look identical */
+  function isoSig(g,cm){
+    return withGrid(g,function(){
+      var q=g;for(var i=0;i<cm;i++)q=rotate(q);
+      var m=q.length,kx=8.66,ky=5,u=10,hm=Math.max(m,maxH()),cv=document.createElement("canvas");
+      cv.width=Math.ceil(2*m*kx)+4;cv.height=Math.ceil(2*m*ky+hm*u)+4;
+      var x=cv.getContext("2d",{willReadFrequently:true});x.translate(m*kx+2,hm*u+2);
+      function poly(col,a){x.fillStyle=col;x.beginPath();a.forEach(function(p,i){var X=(p[0]-p[1])*kx,Y=(p[0]+p[1])*ky-p[2]*u;if(i)x.lineTo(X,Y);else x.moveTo(X,Y)});x.closePath();x.fill()}
+      for(var R=0;R<m;R++)for(var C=0;C<m;C++)for(var z=0;z<q[R][C];z++){
+        poly("#0f0",[[C,R+1,z],[C+1,R+1,z],[C+1,R+1,z+1],[C,R+1,z+1]]);
+        poly("#00f",[[C+1,R,z],[C+1,R+1,z],[C+1,R+1,z+1],[C+1,R,z+1]]);
+        poly("#f00",[[C,R,z+1],[C+1,R,z+1],[C+1,R+1,z+1],[C,R+1,z+1]]);
+      }
+      var d=x.getImageData(0,0,cv.width,cv.height).data,s="";
+      for(var j=0;j<d.length;j+=4){s+=d[j+3]<128?"0":(d[j]>d[j+1]&&d[j]>d[j+2])?"1":(d[j+1]>d[j+2])?"2":"3"}
+      return s;
+    });
+  }
+  function cls(s){return (s==="front"||s==="back")?"f":"s"}
+  function cap(s){return s.charAt(0).toUpperCase()+s.slice(1)}
+  function build(type,tt){
+    var m=tt?tt.length:+$("#qsize").value,t=tt||randGrid(m),cm=rnd(4),text,prompt,items,ds,H0=Math.max(m,withGrid(t,maxH));
+    if(type==="mix")type=["plan-iso","iso-plan","views-plan","plan-view"][rnd(4)];
+    var planCap="<b>Building plan</b><br>Front is at the bottom";
+    if(type==="plan-iso"||type==="iso-plan"){
+      var sg=isoSig(t,cm),all;
+      ds=distractors(t,function(d){return isoSig(d,cm)!==sg},3);all=[t].concat(ds);
+      var side=CAMS[cm].toLowerCase();
+      if(type==="plan-iso"){
+        text="Which isometric drawing matches this building plan? The drawings look at the building from the "+side+" corner.";
+        prompt=fig(planSvg(t),planCap);
+        items=all.map(function(g,i){return {html:isoSvg(g,cm,H0),ok:i===0}});
+      }else{
+        text="Which building plan matches this drawing? You are looking at the building from the "+side+" corner.";
+        prompt=fig(isoSvg(t,cm,H0),"<b>"+CAMS[cm]+"</b>");
+        items=all.map(function(g,i){return {html:planSvg(g),ok:i===0}});
+      }
+    }else if(type==="views-plan"){
+      var s1=["front","right","back","left"][rnd(4)],sides=[s1],Hm=Math.max(1,withGrid(t,maxH));
+      if(rnd(2))sides.push(shuf((s1==="front"||s1==="back")?["right","left"]:["front","back"])[0]); // second view is perpendicular to the first
+      prompt=sides.map(function(s){return fig(elevation(vw(t,s),cls(s),s+" view",Hm,vwd(t,s)),"<b>"+cap(s)+" view</b>")}).join("");
+      ds=distractors(t,function(d){return sides.some(function(s){return key(vw(d,s))!==key(vw(t,s))})},3);
+      text=sides.length>1?"Which building plan matches both of these views?":"Which building plan matches this view?";
+      items=[t].concat(ds).map(function(g,i){return {html:planSvg(g),ok:i===0}});
+    }else{
+      var s=["front","right","back","left"][rnd(4)],good=vw(t,s),arrs=[good],seen={};seen[key(good)]=1;
+      good.D=vwd(t,s);var mgr=(s==="front"||s==="back")?t.map(function(r){return r.slice().reverse()}):t.slice().reverse(),rv=vw(mgr,s);rv.D=vwd(mgr,s);if(!seen[key(rv)]){seen[key(rv)]=1;arrs.push(rv)}
+      for(var i=0;i<400&&arrs.length<4;i++){var mg=mutate(t),a=vw(mg,s),k=key(a);if(!seen[k]){seen[k]=1;a.D=vwd(mg,s);arrs.push(a)}}
+      var H2=Math.max(1,Math.max.apply(null,[].concat.apply([],arrs)));
+      text="Which picture shows the "+s+" view of this building?";
+      prompt=fig(planSvg(t),planCap);
+      items=arrs.map(function(a,i){return {html:elevation(a,cls(s),"Option",H2,a.D),ok:i===0}});
+    }
+    return {text:text,prompt:prompt,items:shuf(items),t:t,cm:cm,done:false};
+  }
+  function scoreText(){$("#score").textContent=score.total?"Score "+score.ok+" of "+score.total+", streak "+score.streak:""}
+  function ask(){
+    var tr=0;do{Q=build($("#qtype").value)}while(!distinctOpts(Q)&&++tr<30);
+    $("#qtext").textContent=Q.text;$("#qprompt").innerHTML=Q.prompt;
+    $("#qopts").innerHTML=Q.items.map(function(it,i){return '<button class="opt" data-i="'+i+'" aria-label="Option '+"ABCD".charAt(i)+'"><span class="ol">'+"ABCD".charAt(i)+'</span>'+it.html+'</button>'}).join("");
+    $("#qfb").textContent="";$("#qnext").hidden=true;$("#qopen").hidden=true;scoreText();
+  }
+  $("#qopts").addEventListener("click",function(e){
+    var b=e.target.closest(".opt");if(!b||!Q||Q.done)return;
+    Q.done=true;var i=+b.dataset.i,good=Q.items[i].ok;
+    score.total++;if(good){score.ok++;score.streak++}else score.streak=0;
+    Array.prototype.forEach.call($("#qopts").children,function(el,j){
+      var lab=el.querySelector(".ol");
+      if(Q.items[j].ok){el.classList.add("ok");lab.textContent+=" ✓"}
+      else if(j===i){el.classList.add("no");lab.textContent+=" ✗"}
+    });
+    $("#qfb").textContent=good?"Correct! Well spotted.":"Not quite. The option marked ✓ is the match. Open it in Explore to see why.";
+    $("#qnext").hidden=false;$("#qopen").hidden=false;scoreText();
+  });
+  $("#qnext").onclick=ask;
+  $("#qopen").onclick=function(){
+    h=Q.t.map(function(r){return r.slice()});n=h.length;cam=Q.cm;
+    $("#size").value=String(n);buildPlan();tab(false);
+  };
+  $("#qtype").onchange=ask;$("#qsize").onchange=ask;
+  function tab(q){var d=(q==="draw"),w=(q==="ws");q=(q===true);$("#ws").hidden=!w;$("#tabW").setAttribute("aria-pressed",String(w));if(w)wsRefresh();$("#draw").hidden=!d;$("#tabD").setAttribute("aria-pressed",String(d));if(d&&!Dr)dNew();
+    Array.prototype.forEach.call(document.querySelectorAll(".ex"),function(el){el.hidden=q||d||w});
+    $("#quiz").hidden=!q;
+    $("#tabEx").setAttribute("aria-pressed",String(!q&&!d&&!w));$("#tabQ").setAttribute("aria-pressed",String(q));
+    if(q&&!Q)ask();
+  }
+  $("#tabEx").onclick=function(){tab(false)};$("#tabQ").onclick=function(){tab(true)};$("#tabD").onclick=function(){tab("draw")};$("#tabW").onclick=function(){tab("ws")};
+
+  /* ---------- scoring, bonus and worksheet ---------- */
+  function distinctOpts(Qq){var seen={};return Qq.items.every(function(it){if(seen[it.html])return false;seen[it.html]=1;return true})}
+  function dShow(){$("#dscore").textContent="First tries: "+DS.ok+" of "+DS.total+", streak "+DS.streak+". Points: "+DS.pts}
+  function dSolved(){if(!Dr.solved){Dr.solved=true;DS.pts++;dShow()}}
+  function minCubes(cp){
+    var p={},q={},ks={},tot=0;
+    cp.col.forEach(function(a){if(a>0)p[a]=(p[a]||0)+1});
+    cp.row.forEach(function(b){if(b>0)q[b]=(q[b]||0)+1});
+    Object.keys(p).concat(Object.keys(q)).forEach(function(k){ks[k]=1});
+    Object.keys(ks).forEach(function(k){tot+=(+k)*Math.max(p[k]||0,q[k]||0)});
+    return tot;
+  }
+  function maxCubes(cp,m){var t=0;for(var r=0;r<m;r++)for(var c=0;c<m;c++)t+=Math.min(cp.col[c],cp.row[r]);return t}
+  function footRange(cp,m){ // fewest and most squares a top view can cover (small grids only)
+    var cells=[],cn=[],rn=[],i,r,c;
+    for(i=0;i<m;i++){cn.push(0);rn.push(0)}
+    for(r=0;r<m;r++)for(c=0;c<m;c++){var cap=Math.min(cp.col[c],cp.row[r]);if(cap>=1)cells.push({r:r,c:c,cap:cap})}
+    if(cells.length>18)return null;
+    cells.forEach(function(e,j){if(e.cap===cp.col[e.c])cn[e.c]|=1<<j;if(e.cap===cp.row[e.r])rn[e.r]|=1<<j});
+    var lo=99,hi=0;
+    for(var mk=1;mk<(1<<cells.length);mk++){
+      var ok=true;
+      for(i=0;i<m;i++){if((cp.col[i]>0&&!(mk&cn[i]))||(cp.row[i]>0&&!(mk&rn[i]))){ok=false;break}}
+      if(!ok)continue;
+      var cnt=0,x=mk;while(x){cnt+=x&1;x>>=1}
+      if(cnt<lo)lo=cnt;if(cnt>hi)hi=cnt;
+    }
+    return lo<99?{min:lo,max:hi}:null;
+  }
+  function dBonus(v){
+    var D=Dr,r=D.x.range,f=D.found,u=D.task==="bp"?"cubes":"squares",gain=0;
+    if(!f.any){f.any=1;gain++}
+    if(r&&v===r.min&&!f.min){f.min=1;gain++}
+    if(r&&v===r.max&&!f.max){f.max=1;gain++}
+    DS.pts+=gain;dShow();
+    var s="Correct! That uses "+v+" "+u+". \u2605 Solution"+(f.min?" \u2605 Smallest":"")+(f.max?" \u2605 Largest":"")+". ";
+    if(r&&!(f.min&&f.max))s+="Bonus: can you find "+(f.min?"":"the smallest")+(!f.min&&!f.max?" and ":"")+(f.max?"":"the largest")+" one? Keep editing and check again.";
+    else if(r)s+="You found all the bonus points!";
+    return s;
+  }
+  function dRangeText(){
+    var r=Dr.x.range,u=Dr.task==="bp"?"cubes":"squares";
+    return "This is one answer that fits both views."+(r?" The fewest possible is "+r.min+" and the most is "+r.max+" "+u+".":"");
+  }
+
+  var WS={bld:[],tasks:[]};
+  var WT=[["d-front","Draw the front view"],["d-right","Draw the right view"],["d-back","Draw the back view"],["d-left","Draw the left view"],["d-iso","Draw an isometric drawing"],["d-hid","Draw a view with hidden edges"],["d-tv","Draw a top view that fits two views"],["d-bp","Fill in a plan that fits two views"],["m-plan-iso","Choose the drawing that matches a plan"],["m-iso-plan","Choose the plan that matches a drawing"],["m-views-plan","Choose the plan that matches views"],["m-plan-view","Choose the view that matches a plan"]];
+  function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+  function seeded(seed){var a=seed>>>0;return function(){a=(a+0x6D2B79F5)>>>0;var t=a;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296}}
+  function withSeed(seed,fn){var old=Math.random;Math.random=seeded(seed);try{return fn()}finally{Math.random=old}}
+  function dotsElev(c,r,cs){
+    var p=10,s="";cs=Math.round(cs*1.2);
+    for(var i=0;i<=c;i++)for(var j=0;j<=r;j++)s+='<circle class="dot" cx="'+(p+i*cs)+'" cy="'+(p+j*cs)+'" r="1.8"/>';
+    s+='<line class="ground" x1="'+p+'" x2="'+(p+c*cs)+'" y1="'+(p+r*cs)+'" y2="'+(p+r*cs)+'"/>';
+    return svgWrap(c*cs+2*p,r*cs+2*p,s,"Dot grid");
+  }
+  function dotsIso(nn,H,u){
+    var kx=0.866*u,ky=0.5*u,p=12,seen={},s="";
+    for(var x=0;x<=nn;x++)for(var y=0;y<=nn;y++)for(var z=0;z<=H;z++){
+      var X=(x-y)*kx,Y=(x+y)*ky-z*u,k=Math.round(X*10)+","+Math.round(Y*10);
+      if(seen[k])continue;seen[k]=1;
+      s+='<circle class="dot" cx="'+X.toFixed(1)+'" cy="'+Y.toFixed(1)+'" r="1.8"/>';
+    }
+    var w=Math.round(2*nn*kx+2*p),hh=Math.round(2*nn*ky+H*u+2*p);
+    return '<svg width="'+w+'" height="'+hh+'" viewBox="'+(-nn*kx-p)+' '+(-H*u-p)+' '+w+' '+hh+'" role="img" aria-label="Dot grid">'+s+'</svg>';
+  }
+  function blankPlan(m){
+    var c=44,p=3,s="";
+    for(var r=0;r<m;r++)for(var k=0;k<m;k++)s+='<rect class="sq" style="fill:none" x="'+(p+k*c)+'" y="'+(p+r*c)+'" width="'+c+'" height="'+c+'"/>';
+    return svgWrap(m*c+2*p,m*c+2*p,s,"Empty building plan")+'<div class="hint">Front is at the bottom</div>';
+  }
+  function footSvg(g){
+    var m=g.length,c=26,p=3,s="";
+    for(var r=0;r<m;r++)for(var k=0;k<m;k++)s+='<rect class="sq'+(g[r][k]?' t':'')+'" style="'+(g[r][k]?'':'fill:none')+'" x="'+(p+k*c)+'" y="'+(p+r*c)+'" width="'+c+'" height="'+c+'"/>';
+    return svgWrap(m*c+2*p,m*c+2*p,s,"Top view");
+  }
+  function wsTask(tk){
+    var g=WS.bld[tk.b],m=g.length,H=Math.max(1,withGrid(g,maxH)),ty=tk.ty,nm="Building "+(tk.b+1);
+    var planFig=fig(planSvg(g),"<b>"+nm+"</b><br>Front is at the bottom");
+    var text="",figs="",area="",key="";
+    function elevFig(sd){return fig(elevation(vw(g,sd),cls(sd),sd+" view",H,vwd(g,sd)),"<b>"+cap(sd)+" view</b>")}
+    if(ty.charAt(0)==="m"){
+      var Qw=withSeed(tk.seed,function(){var r,tr=0;do{r=build(ty.slice(2),g)}while(!distinctOpts(r)&&++tr<30);return r});
+      var ci=0;Qw.items.forEach(function(it,j){if(it.ok)ci=j});
+      text=Qw.text+" Circle the correct option.";figs=Qw.prompt;
+      area='<div class="wopts">'+Qw.items.map(function(it){return '<div class="wopt">'+it.html+'</div>'}).join("")+'</div>';
+      key="Correct option ("+["top left","top right","bottom left","bottom right"][ci]+"):<div class=\"wkimg\">"+Qw.items[ci].html+"</div>";
+    }else if(ty==="d-iso"){
+      text="Draw "+nm+" as an isometric drawing, seen from the "+CAMS[tk.cm].toLowerCase()+" corner. The dots will help you.";
+      figs=planFig;area=dotsIso(m,H,30);key=isoSvg(g,tk.cm,H);
+    }else if(ty==="d-hid"){
+      text="Draw the "+tk.sd+" view of "+nm+". Use solid lines for edges you can see and dashed lines for edges hidden behind cubes. Do not draw lines inside a flat face.";
+      figs=planFig;area=dotsElev(m,H,28);
+      var st=style;style="dashed";
+      try{key=elevation(vw(g,tk.sd),cls(tk.sd),tk.sd+" view",H,vwd(g,tk.sd))}finally{style=st}
+    }else if(ty==="d-tv"||ty==="d-bp"){
+      text="These are two views of a building. "+(ty==="d-tv"?"Draw a top view that fits both views. Several answers are possible.":"Write numbers in the squares to make a building plan that fits both views. Challenge: find the plan with the fewest cubes and the plan with the most cubes.");
+      figs=tk.sides.map(elevFig).join("");
+      area=ty==="d-tv"?dotsElev(m,m,28)+'<div class="hint">Front is at the bottom</div>':blankPlan(m);
+      var cp=caps(tk.sides,tk.sides.map(function(sd){return vw(g,sd)}),m);
+      if(ty==="d-tv"){var fr=footRange(cp,m);key=footSvg(g)+'<div class="hint">One possible answer.'+(fr?" Fewest squares: "+fr.min+", most: "+fr.max+".":"")+'</div>'}
+      else key=planSvg(g)+'<div class="hint">One possible plan. Fewest cubes: '+minCubes(cp)+', most cubes: '+maxCubes(cp,m)+'.</div>';
+    }else{
+      var s=ty.slice(2);
+      text="Draw the "+s+" view of "+nm+".";figs=planFig;area=dotsElev(m,H,28);key=elevFig(s);
+    }
+    return {text:text,figs:figs,area:area,key:key};
+  }
+  function wsRender(){
+    if(!WS.tasks.length){$("#wsheet").innerHTML='<p class="hint" style="text-align:center">Add a building and a task to see your worksheet here.</p>';return}
+    var parts=[],keys=[];
+    WS.tasks.forEach(function(tk,i){
+      var r=wsTask(tk);
+      parts.push('<section class="wtask"><p class="wq"><b>'+(i+1)+'.</b> '+r.text+'</p><div class="wfig">'+r.figs+'</div><div class="wresp">'+r.area+'</div></section>');
+      keys.push('<div class="wk"><b>'+(i+1)+'.</b> '+r.key+'</div>');
+    });
+    $("#wsheet").innerHTML='<div class="sheet"><h2 class="wtitle">'+esc($("#wstitle").value)+'</h2>'+($("#wsnd").checked?'<p class="wnd">Name: ______________ &nbsp; Date: ____________</p>':'')+parts.join("")+($("#wskey").checked?'<div class="wkey"><h3>Answer key</h3>'+keys.join("")+'</div>':'')+'</div>';
+  }
+  function wsRefresh(){
+    $("#wsbl").innerHTML=WS.bld.map(function(g,i){
+      var tot=0;g.forEach(function(r){r.forEach(function(v){tot+=v})});
+      return '<div class="wb"><div class="wbt">'+isoSvg(g,0,Math.max(g.length,withGrid(g,maxH)))+'</div><div><b>Building '+(i+1)+'</b><br>'+g.length+'\u00d7'+g.length+' grid, '+tot+' cubes<div class="row" style="margin:6px 0 0"><button data-act="edit" data-i="'+i+'">Edit a copy in Explore</button><button data-act="del" data-i="'+i+'">Remove</button></div></div></div>';
+    }).join("")||'<p class="hint">No buildings yet. Design one in Explore and press "Add to worksheet", or add a random one.</p>';
+    $("#wsb").innerHTML=WS.bld.map(function(g,i){return '<option value="'+i+'">Building '+(i+1)+'</option>'}).join("");
+    $("#wstl").innerHTML=WS.tasks.map(function(tk,i){
+      var lab=WT.filter(function(w){return w[0]===tk.ty})[0][1];
+      return '<li>Building '+(tk.b+1)+': '+lab+(tk.ty==="d-iso"?" ("+CAMS[tk.cm].toLowerCase()+")":"")+' <button data-i="'+i+'">Remove</button></li>';
+    }).join("");
+    wsRender();
+  }
+  $("#wst").innerHTML=WT.map(function(w){return '<option value="'+w[0]+'">'+w[1]+'</option>'}).join("");
+  $("#wsc").innerHTML=CAMS.map(function(c,i){return '<option value="'+i+'">Isometric: '+c.toLowerCase()+'</option>'}).join("");
+  $("#wsAddR").onclick=function(){WS.bld.push(randGrid(Math.max(3,Math.min(5,n))));wsRefresh()};
+  $("#wsAddT").onclick=function(){
+    if(!WS.bld.length)return;
+    var s1=SIDES[rnd(4)];
+    WS.tasks.push({b:+$("#wsb").value,ty:$("#wst").value,cm:+$("#wsc").value,seed:Math.floor(Math.random()*1e9),sd:SIDES[rnd(4)],
+      sides:[s1,shuf((s1==="front"||s1==="back")?["right","left"]:["front","back"])[0]]});
+    wsRefresh();
+  };
+  $("#wsbl").addEventListener("click",function(e){
+    var b=e.target.closest("button");if(!b)return;
+    var i=+b.dataset.i;
+    if(b.dataset.act==="edit"){h=WS.bld[i].map(function(r){return r.slice()});n=h.length;$("#size").value=String(n);buildPlan();tab(false)}
+    else{WS.bld.splice(i,1);WS.tasks=WS.tasks.filter(function(t){return t.b!==i});WS.tasks.forEach(function(t){if(t.b>i)t.b--});wsRefresh()}
+  });
+  $("#wstl").addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;WS.tasks.splice(+b.dataset.i,1);wsRefresh()});
+  ["#wstitle","#wsnd","#wskey"].forEach(function(s){$(s).oninput=wsRender;$(s).onchange=wsRender});
+  $("#wsPrint").onclick=function(){
+    $("#wsmsg").textContent="";
+    try{window.print()}catch(e){$("#wsmsg").textContent="Printing is blocked here. Try opening the page in its own browser tab."}
+  };
+  (function(){
+    var ab=document.createElement("button");ab.textContent="Add to worksheet";
+    ab.onclick=function(){
+      WS.bld.push(h.map(function(r){return r.slice()}));
+      ab.textContent="Added as building "+WS.bld.length;
+      setTimeout(function(){ab.textContent="Add to worksheet"},1800);
+    };
+    $("#presets").appendChild(ab);
+  })();
+
+  Array.prototype.forEach.call(document.querySelectorAll(".fstyle"),function(sel){
+    sel.onchange=function(){
+      style=sel.value;
+      Array.prototype.forEach.call(document.querySelectorAll(".fstyle"),function(o){o.value=style});
+      refresh();
+      if(!$("#quiz").hidden)ask();if(!$("#ws").hidden)wsRender();
+    };
+  });
+
+  /* ---------- draw it yourself ---------- */
+  var Dr=null,brush="t",KX=0.866*34,KY=17,KU=34;
+  function sp(p){return [(p[0]-p[1])*KX,(p[0]+p[1])*KY-p[2]*KU]}
+  function fpts(ty,C,R,z){
+    return ty==="f"?[[C,R+1,z],[C+1,R+1,z],[C+1,R+1,z+1],[C,R+1,z+1]]
+      :ty==="s"?[[C+1,R,z],[C+1,R+1,z],[C+1,R+1,z+1],[C+1,R,z+1]]
+      :[[C,R,z+1],[C+1,R,z+1],[C+1,R+1,z+1],[C,R+1,z+1]];
+  }
+  // a face is identified by its kind and where it lands on the page, so equal-looking faces share one key
+  function fkey(ty,pl){var a=0,b=0;pl.forEach(function(p){a+=p[0]-p[1];b+=p[0]+p[1]-2*p[2]});return ty+a+","+b}
+  function isoCand(m){
+    var o={};
+    ["t","f","s"].forEach(function(ty){
+      for(var R=0;R<m;R++)for(var C=0;C<m;C++)for(var z=0;z<m;z++){
+        var pl=fpts(ty,C,R,z),k=fkey(ty,pl);if(!o[k])o[k]={ty:ty,pl:pl};
+      }
+    });
+    return o;
+  }
+  function isoVis(g,cm){ // the faces you can actually see from corner cm
+    return withGrid(g,function(){
+      var q=g;for(var i=0;i<cm;i++)q=rotate(q);
+      var m=q.length,vis={};
+      function open(cx,cy,cz){
+        for(var t=0.25;t<=m+1;t+=0.5){
+          var C=Math.floor(cx+t),R=Math.floor(cy+t),z=Math.floor(cz+t);
+          if(C<m&&R<m&&z<q[R][C])return false;
+        }
+        return true;
+      }
+      for(var R=0;R<m;R++)for(var C=0;C<m;C++)for(var z=0;z<q[R][C];z++){
+        if(open(C+0.5,R+1,z+0.5))vis[fkey("f",fpts("f",C,R,z))]="f";
+        if(open(C+1,R+0.5,z+0.5))vis[fkey("s",fpts("s",C,R,z))]="s";
+        if(open(C+0.5,R+0.5,z+1))vis[fkey("t",fpts("t",C,R,z))]="t";
+      }
+      return vis;
+    });
+  }
+  function dNew0(task){
+    var m=+$("#dsize").value;
+    
+    var t=randGrid(m),cm=rnd(4),sol={};
+    if(task==="iso")sol=isoVis(t,cm);
+    else vw(t,task).forEach(function(v,i){for(var k=0;k<v;k++)sol[i+","+k]=true});
+    Dr={t:t,m:m,task:task,cm:cm,sol:sol,user:{},res:null,cand:task==="iso"?isoCand(m):null};
+    $("#dfb").textContent="";
+    dRender();
+  }
+  function dRender0(){
+    var D=Dr,m=D.m,res=D.res,s="",iso=D.task==="iso";
+    $("#dbrush").hidden=!iso;
+    Array.prototype.forEach.call($("#dbrush").querySelectorAll("button"),function(b){b.setAttribute("aria-pressed",String(b.dataset.b===brush))});
+    $("#dtext").textContent=iso
+      ?"Draw this building as an isometric picture, seen from the "+CAMS[D.cm].toLowerCase()+" corner. Choose a kind of face, then click the lattice to paint it. Leave out faces you cannot see."
+      :"Draw the "+D.task+" view of this building, as seen by someone standing at the "+D.task+" of the plan. Click squares to fill them in.";
+    $("#dprompt").innerHTML=fig(planSvg(D.t),"<b>Building plan</b><br>Front is at the bottom");
+    if(iso){
+      var pad=10,w=Math.round(2*m*KX+2*pad),hh=Math.round(2*m*KY+m*KU+2*pad);
+      var pl=function(a){return a.map(function(p){var q=sp(p);return q[0].toFixed(1)+","+q[1].toFixed(1)}).join(" ")};
+      for(var i=0;i<=m;i++){
+        var a=sp([i,0,0]),b=sp([i,m,0]),c=sp([0,i,0]),d=sp([m,i,0]);
+        s+='<path class="floor" d="M'+a[0]+' '+a[1]+'L'+b[0]+' '+b[1]+'M'+c[0]+' '+c[1]+'L'+d[0]+' '+d[1]+'"/>';
+      }
+      Object.keys(D.user).forEach(function(k){var f=D.cand[k];s+='<polygon class="sq '+f.ty+(res&&!D.sol[k]?' ex':'')+'" points="'+pl(f.pl)+'"/>'});
+      if(res)Object.keys(D.sol).forEach(function(k){if(!D.user[k])s+='<polygon class="ms" points="'+pl(D.cand[k].pl)+'"/>'});
+      var tg=brush==="e"?Object.keys(D.user):Object.keys(D.cand).filter(function(k){return D.cand[k].ty===brush});
+      tg.forEach(function(k){s+='<polygon class="hit" data-k="'+k+'" points="'+pl(D.cand[k].pl)+'"/>'});
+      $("#dcanvas").innerHTML='<svg width="'+w+'" height="'+hh+'" viewBox="'+(-m*KX-pad)+' '+(-m*KU-pad)+' '+w+' '+hh+'" role="img" aria-label="Drawing area">'+s+'</svg>';
+    }else{
+      var cs=34,p2=4,W=m*cs+2*p2,cl=(D.task==="front"||D.task==="back")?"f":"s";
+      for(var k=0;k<m;k++)for(var j=0;j<m;j++){
+        var key=j+","+k,on=D.user[key];
+        var kc=on?"sq "+cl+(res&&!D.sol[key]?" ex":""):"dq0"+(res&&D.sol[key]?" ms":"");
+        s+='<rect class="'+kc+'" data-k="'+key+'" x="'+(p2+j*cs)+'" y="'+(p2+(m-1-k)*cs)+'" width="'+cs+'" height="'+cs+'"/>';
+      }
+      s+='<line class="ground" x1="0" x2="'+W+'" y1="'+(W-p2)+'" y2="'+(W-p2)+'"/>';
+      $("#dcanvas").innerHTML=svgWrap(W,W,s,"Drawing area");
+    }
+  }
+  $("#dcanvas").addEventListener("click",function(e){
+    var el=e.target.closest("[data-k]");if(!el||!Dr)return;
+    var k=el.dataset.k;
+    dToggle(k);
+    Dr.res=null;$("#dfb").textContent="";dRender();
+  });
+  $("#dbrush").addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;brush=b.dataset.b;dRender()});
+  $("#dcheck").onclick=function(){if(dCheckX())return;dCheck0();var okk=!Dr.res.ex&&!Dr.res.ms;dScore(okk);if(okk)dSolved()};
+  function dCheck0(){
+    var ex=0,ms=0,unit=Dr.task==="iso"?"faces":"squares";
+    Object.keys(Dr.user).forEach(function(k){if(!Dr.sol[k])ex++});
+    Object.keys(Dr.sol).forEach(function(k){if(!Dr.user[k])ms++});
+    Dr.res={ex:ex,ms:ms};dRender();
+    $("#dfb").textContent=(!ex&&!ms)?"Correct! Your drawing matches the building."
+      :"Not yet. "+(ms?ms+" "+unit+" still missing (orange outlines). ":"")+(ex?ex+" "+unit+" that do not belong (marked in red).":"");
+  };
+  $("#dshow").onclick=function(){dScore(false);
+    Dr.user={};Object.keys(Dr.sol).forEach(function(k){Dr.user[k]=Dr.sol[k]});
+    Dr.res=null;dRender();$("#dfb").textContent=(Dr.task==="tv"||Dr.task==="bp")?dRangeText():"This is the correct drawing.";
+  };
+  $("#dclear").onclick=function(){Dr.user={};Dr.res=null;$("#dfb").textContent="";dRender()};
+  var NEWT={edges:1,tv:1,bp:1},DS={ok:0,total:0,streak:0,pts:0};
+  var SIDES=["front","right","back","left"];
+  function dScore(ok){ // only the first check of each building counts
+    if(!Dr||Dr.counted)return;
+    Dr.counted=true;DS.total++;
+    if(ok){DS.ok++;DS.streak++}else DS.streak=0;
+    dShow();
+  }
+  function edgeStates(arr,D){ // 1 = visible edge, 2 = hidden edge, for each unit segment
+    var n2=arr.length,st={};
+    D.E.forEach(function(e){
+      var hid=false,pr=e[0]===e[2]?[[e[0]-1,e[1]],[e[0],e[1]]]:[[e[0],e[1]-1],[e[0],e[1]]];
+      pr.forEach(function(q){var a=q[0],b=q[1];if(a>=0&&a<n2&&b>=0&&b<arr[a]&&D[a][b]!=null&&D[a][b]<e[4])hid=true});
+      var k=e.slice(0,4).join();
+      if(!hid)st[k]=1;else if(!st[k])st[k]=2;
+    });
+    return st;
+  }
+  function caps(sides,views,m){ // tallest allowed stack in each column and row, from two perpendicular views
+    var col=[],row=[];
+    for(var i=0;i<m;i++){col.push(Infinity);row.push(Infinity)}
+    sides.forEach(function(s,i){var V=views[i];
+      for(var j=0;j<m;j++){
+        if(s==="front")col[j]=Math.min(col[j],V[j]);
+        else if(s==="back")col[m-1-j]=Math.min(col[m-1-j],V[j]);
+        else if(s==="right")row[m-1-j]=Math.min(row[m-1-j],V[j]);
+        else row[j]=Math.min(row[j],V[j]);
+      }
+    });
+    return {col:col,row:row};
+  }
+  function dUserGrid(){
+    var g=zeros(Dr.m);
+    Object.keys(Dr.user).forEach(function(k){var a=k.split(",");g[+a[0]][+a[1]]=Dr.user[k]===true?1:Dr.user[k]});
+    return g;
+  }
+  function dToggle(k){
+    var t=Dr.task,v;
+    if(t==="edges"){v=((Dr.user[k]||0)+1)%3;if(v)Dr.user[k]=v;else delete Dr.user[k]}
+    else if(t==="bp"){v=((Dr.user[k]||0)+1)%(Dr.m+1);if(v)Dr.user[k]=v;else delete Dr.user[k]}
+    else if(Dr.user[k])delete Dr.user[k];
+    else Dr.user[k]=t==="iso"?Dr.cand[k].ty:true;
+  }
+  function dNew(){
+    var task=$("#dtask").value;
+    if(task==="mix")task=["front","right","back","left","iso","edges","tv","bp"][rnd(8)];
+    if(!NEWT[task]){dNew0(task);return}
+    var m=+$("#dsize").value,t=randGrid(m),sol={},x={};
+    if(task==="edges"){
+      var s=SIDES[rnd(4)];x.side=s;sol=edgeStates(vw(t,s),vwd(t,s));
+    }else{
+      var s1=SIDES[rnd(4)],s2=shuf((s1==="front"||s1==="back")?["right","left"]:["front","back"])[0];
+      x.sides=[s1,s2];
+      x.views=x.sides.map(function(sd){return vw(t,sd)});
+      x.Ds=x.sides.map(function(sd){return vwd(t,sd)});
+      x.cp=caps(x.sides,x.views,m);
+      x.range=task==="bp"?{min:minCubes(x.cp),max:maxCubes(x.cp,m)}:footRange(x.cp,m);
+      for(var r=0;r<m;r++)for(var c=0;c<m;c++)if(t[r][c])sol[r+","+c]=task==="tv"?true:t[r][c];
+    }
+    Dr={t:t,m:m,task:task,cm:0,sol:sol,user:{},res:null,cand:null,x:x,found:{}};
+    $("#dfb").textContent="";dRender();
+  }
+  function dRender(){if(Dr&&NEWT[Dr.task])dRenderX();else dRender0()}
+  function dRenderX(){
+    var D=Dr,m=D.m,x=D.x,t=D.task,res=D.res,s="",cs=34,pad=8,i,j;
+    $("#dbrush").hidden=true;
+    var planFig=fig(planSvg(D.t),"<b>Building plan</b><br>Front is at the bottom");
+    if(t==="edges"){
+      $("#dtext").textContent="Draw the "+x.side+" view with its edges. Click a line position to switch between a solid line (an edge you can see), a dashed line (an edge hidden behind cubes) and no line. Squares that form one face have no line between them.";
+      $("#dprompt").innerHTML=planFig;
+      var W=m*cs+2*pad,keys=[],lines="",hits="";
+      for(i=0;i<=m;i++)for(j=0;j<m;j++)keys.push([i,j,i,j+1]);
+      for(j=1;j<=m;j++)for(i=0;i<m;i++)keys.push([i,j,i+1,j]);
+      keys.forEach(function(e){
+        var k=e.join(),us=D.user[k]||0,ss=D.sol[k]||0;
+        var pos='x1="'+(pad+e[0]*cs)+'" y1="'+(pad+(m-e[1])*cs)+'" x2="'+(pad+e[2]*cs)+'" y2="'+(pad+(m-e[3])*cs)+'"';
+        if(res&&ss&&!us)lines+='<line class="msl" '+pos+'/>';
+        if(us)lines+='<line class="ed bold'+(us===2?' dsh':'')+(res&&us!==ss?' wr':'')+'" '+pos+'/>';
+        hits+='<line class="hitl" data-k="'+k+'" '+pos+'/>';
+      });
+      s='<line class="ground" x1="0" x2="'+W+'" y1="'+(W-pad)+'" y2="'+(W-pad)+'"/>'+lines+hits;
+      $("#dcanvas").innerHTML=svgWrap(W,W,s,"Drawing area");
+      return;
+    }
+    var figs=x.sides.map(function(sd,ii){
+      return fig(elevation(x.views[ii],(sd==="front"||sd==="back")?"f":"s",sd+" view",m,x.Ds[ii]),"<b>"+sd.charAt(0).toUpperCase()+sd.slice(1)+" view</b>");
+    }).join("");
+    $("#dprompt").innerHTML='<div style="display:flex;gap:16px;flex-wrap:wrap;justify-content:center">'+figs+'</div>';
+    if(t==="tv"){
+      $("#dtext").textContent="Here are two views of a building. Draw its top view by filling the squares the building covers. Several buildings fit these views, so any top view that fits both counts as correct. Then try for bonus points: the smallest and the largest top view that still fits.";
+      var W2=m*cs+8;
+      for(i=0;i<m;i++)for(j=0;j<m;j++){var k=i+","+j;s+='<rect class="'+(D.user[k]?"sq t":"dq0")+'" data-k="'+k+'" x="'+(4+j*cs)+'" y="'+(4+i*cs)+'" width="'+cs+'" height="'+cs+'"/>'}
+      $("#dcanvas").innerHTML=svgWrap(W2,W2,s,"Drawing area")+'<div class="hint" style="text-align:center">Front is at the bottom</div>';
+    }else{
+      $("#dtext").textContent="Here are two views of a building. Build a plan that gives both views: click a square to raise its stack by one (after the highest it goes back to 0). Many plans fit. Bonus points for the plan with the fewest cubes and the plan with the most.";
+      var g=dUserGrid(),h2='<div class="plan" style="grid-template-columns:repeat('+m+',1fr);width:'+(m*56)+'px">';
+      for(i=0;i<m;i++)for(j=0;j<m;j++){var v=g[i][j];h2+='<button class="cell'+(v?'':' z')+'" data-k="'+i+','+j+'"'+(v?' style="background:color-mix(in srgb, var(--front) '+(v*8)+'%, var(--card))"':'')+'>'+v+'</button>'}
+      h2+='</div>';
+      $("#dcanvas").innerHTML='<div style="display:flex;gap:20px;flex-wrap:wrap;align-items:center;justify-content:center"><div>'+h2+'<div class="hint" style="text-align:center">Front is at the bottom</div></div>'+fig(isoSvg(g,0),"<b>Your building</b><br>Front right corner")+'</div>';
+    }
+  }
+  function dCheckX(){
+    var t=Dr.task;if(!NEWT[t])return false;
+    var x=Dr.x,m=Dr.m,ok,fb,i;
+    if(t==="edges"){
+      var ex=0,ms=0,wr=0,all={};
+      Object.keys(Dr.user).concat(Object.keys(Dr.sol)).forEach(function(k){all[k]=1});
+      Object.keys(all).forEach(function(k){
+        var u=Dr.user[k]||0,q=Dr.sol[k]||0;
+        if(u&&!q)ex++;else if(!u&&q)ms++;else if(u&&q&&u!==q)wr++;
+      });
+      ok=!ex&&!ms&&!wr;
+      fb=ok?"Correct! Visible edges are solid and hidden edges are dashed.":"Not yet. "+(ms?ms+" missing (orange). ":"")+(ex?ex+" line(s) that do not belong (red). ":"")+(wr?wr+" line(s) with the wrong style, solid or dashed (red).":"");
+    }else{
+      var g,bad=false,cp=caps(x.sides,x.views,m);
+      if(t==="tv"){
+        g=zeros(m);
+        Object.keys(Dr.user).forEach(function(k){var a=k.split(","),v=Math.min(cp.col[+a[1]],cp.row[+a[0]]);if(v<1)bad=true;g[+a[0]][+a[1]]=v});
+        if(!Object.keys(Dr.user).length)bad=true;
+      }else g=dUserGrid();
+      var fails=[];
+      x.sides.forEach(function(sd,ii){if(key(vw(g,sd))!==key(x.views[ii]))fails.push(sd)});
+      ok=!bad&&!fails.length;
+      var tot=0,best=0;
+      for(var r=0;r<m;r++)for(var c=0;c<m;c++){tot+=g[r][c];best+=Math.min(cp.col[c],cp.row[r])}
+      if(t==="tv")fb=ok?dBonus(Object.keys(Dr.user).length)
+        :bad?"Some of those squares would have to be empty, because one of the views shows no cubes there (or you have not filled any squares).":"A building on that footprint cannot match the "+fails.join(" and ")+" view.";
+      else fb=ok?dBonus(tot)
+        :"The "+fails.join(" and ")+" view of your building does not match yet.";
+    }
+    Dr.res={};dRender();$("#dfb").textContent=fb;dScore(ok);if(ok&&t==="edges")dSolved();return true;
+  }
+  $("#dnew").onclick=dNew;$("#dtask").onchange=dNew;$("#dsize").onchange=dNew;
+
+  h[3][0]=3;h[3][1]=2;h[2][1]=1;h[3][2]=1;h[2][2]=2;
+  buildPlan();
+})();
+</script>
+</body>
+</html>
