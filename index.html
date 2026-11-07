@@ -111,13 +111,24 @@ input[type=text]{font:inherit;color:var(--ink);background:var(--card);border:1.5
   .wkey{break-before:page}
   @page{margin:12mm}
 }
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px}
+.skwrap{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start}
+.skboard{display:grid;gap:4px;width:min(100%,420px)}
+.skc{aspect-ratio:1;font-size:1.3rem;font-weight:600;padding:0;border-radius:8px;border:1.5px solid var(--rule);background:var(--card)}
+.skc.gv{border:2.5px solid var(--edge);cursor:default}
+.skc.cf{color:var(--accent);border-color:var(--accent)}
+.skc.hl{box-shadow:0 0 0 3px color-mix(in srgb,var(--front) 55%,transparent)}
+.skk{aspect-ratio:1;border:0;background:transparent;font-weight:600;font-size:1.1rem;color:var(--muted);padding:0;border-radius:50%}
+.skk.ok{color:#2e9e5b}.skk.bad{color:var(--accent)}
+.skk.sel{background:color-mix(in srgb,var(--front) 30%,transparent)}
+.skside{flex:1;min-width:240px}
 </style>
 </head>
 <body>
 <header>
   <h1>Cube buildings</h1>
   <p>Each number is how many cubes are stacked on that square. Change the plan and see the building from every side.</p>
-<div class="seg" role="group" aria-label="Mode" style="margin-bottom:16px"><button id="tabEx" aria-pressed="true">Explore</button><button id="tabQ" aria-pressed="false">Challenge</button><button id="tabD" aria-pressed="false">Draw</button><button id="tabW" aria-pressed="false">Worksheet</button></div>
+<div class="tabs" role="group" aria-label="Mode"><button id="tabEx" aria-pressed="true">Explore</button><button id="tabQ" aria-pressed="false">Challenge</button><button id="tabD" aria-pressed="false">Draw</button><button id="tabW" aria-pressed="false">Worksheet</button><button id="tabS" aria-pressed="false">Skyscrapers</button></div>
 </header>
 <main>
   <section class="panel ex" aria-labelledby="ph">
@@ -223,12 +234,39 @@ input[type=text]{font:inherit;color:var(--ink);background:var(--card);border:1.5
       <div id="wsbl"></div>
       <div class="row"><button id="wsAddR">Add a random building</button></div>
       <h3>2. Tasks</h3>
-      <div class="row"><select id="wsb" aria-label="Building"></select><select id="wst" aria-label="Task"></select><select id="wsc" aria-label="Corner for isometric tasks"></select><button id="wsAddT">Add task</button></div>
+      <div class="row"><select id="wsb" aria-label="Building"></select><select id="wst" aria-label="Task"></select><select id="wsc" aria-label="Corner for isometric tasks"></select><select id="wss" aria-label="Skyscrapers size"><option value="3">Skyscrapers 3×3</option><option value="4" selected>Skyscrapers 4×4</option><option value="5">Skyscrapers 5×5</option><option value="6">Skyscrapers 6×6</option></select><select id="wsd" aria-label="Skyscrapers level"><option value="easy">Easy</option><option value="medium" selected>Medium</option><option value="hard">Hard</option></select><button id="wsAddT">Add task</button></div>
       <ol id="wstl"></ol>
       <div class="row"><button id="wsPrint">Print or save as PDF</button><span id="wsmsg" class="hint"></span></div>
       <h3>Preview</h3>
     </div>
     <div id="wsheet"></div>
+  </section>
+<section class="panel views" id="sky" hidden aria-labelledby="skh">
+    <h2 id="skh">Skyscrapers</h2>
+    <p class="hint" style="margin:0 0 12px;max-width:70ch">Fill the grid with building heights so that every row and every column contains each height from 1 to the grid size exactly once. The numbers around the edge say how many buildings you can see from that side: a taller building hides every shorter one behind it. Click a clue number to see what the view along that row or column looks like.</p>
+    <div class="row">
+      <label for="sksize">Size</label>
+      <select id="sksize"><option>3</option><option selected>4</option><option>5</option><option>6</option></select>
+      <label for="skdiff">Level</label>
+      <select id="skdiff"><option value="easy">Easy</option><option value="medium" selected>Medium</option><option value="hard">Hard</option></select>
+      <button id="sknew">New puzzle</button>
+      <span class="stats score" id="skscore" aria-live="polite"></span>
+    </div>
+    <div class="skwrap">
+      <div>
+        <div class="skboard" id="skboard"></div>
+        <p id="skfb" role="status" style="min-height:1.5em"></p>
+        <div class="row"><button id="skcheck">Check</button><button id="skhint">Hint</button><button id="skreset">Clear</button><button id="skshow">Show solution</button></div>
+        <p class="hint">Click a square to raise its height, shift-click or right-click to lower it, or select it and type a number. Arrow keys move around.</p>
+      </div>
+      <div class="skside">
+        <h3 style="margin-top:0">Looking along a row or column</h3>
+        <div id="skline"></div>
+        <h3>Your city</h3>
+        <div class="row"><select id="skcam" aria-label="Corner to look from"></select><button id="skopen">Open in Explore</button></div>
+        <div class="isowrap" id="skiso"></div>
+      </div>
+    </div>
   </section>
 </main>
 
@@ -563,7 +601,7 @@ input[type=text]{font:inherit;color:var(--ink);background:var(--card);border:1.5
     return out;
   }
   /* picture signature of an isometric drawing, so two options never look identical */
-  function isoSig(g,cm){
+  function isoSigOld(g,cm){
     return withGrid(g,function(){
       var q=g;for(var i=0;i<cm;i++)q=rotate(q);
       var m=q.length,kx=8.66,ky=5,u=10,hm=Math.max(m,maxH()),cv=document.createElement("canvas");
@@ -583,12 +621,13 @@ input[type=text]{font:inherit;color:var(--ink);background:var(--card);border:1.5
   function cls(s){return (s==="front"||s==="back")?"f":"s"}
   function cap(s){return s.charAt(0).toUpperCase()+s.slice(1)}
   function build(type,tt){
-    var m=tt?tt.length:+$("#qsize").value,t=tt||randGrid(m),cm=rnd(4),text,prompt,items,ds,H0=Math.max(m,withGrid(t,maxH));
+    var m=tt?tt.length:+$("#qsize").value,t=tt||randGrid(m),cm=rnd(4),text,prompt,items,ds,cnt=1,H0=Math.max(m,withGrid(t,maxH));
     if(type==="mix")type=["plan-iso","iso-plan","views-plan","plan-view"][rnd(4)];
     var planCap="<b>Building plan</b><br>Front is at the bottom";
     if(type==="plan-iso"||type==="iso-plan"){
       var sg=isoSig(t,cm),all;
       ds=distractors(t,function(d){return isoSig(d,cm)!==sg},3);all=[t].concat(ds);
+      cnt=all.filter(function(g){return isoSig(g,cm)===sg}).length; // exactly one option may look right
       var side=CAMS[cm].toLowerCase();
       if(type==="plan-iso"){
         text="Which isometric drawing matches this building plan? The drawings look at the building from the "+side+" corner.";
@@ -605,6 +644,7 @@ input[type=text]{font:inherit;color:var(--ink);background:var(--card);border:1.5
       prompt=sides.map(function(s){return fig(elevation(vw(t,s),cls(s),s+" view",Hm,vwd(t,s)),"<b>"+cap(s)+" view</b>")}).join("");
       ds=distractors(t,function(d){return sides.some(function(s){return key(vw(d,s))!==key(vw(t,s))})},3);
       text=sides.length>1?"Which building plan matches both of these views?":"Which building plan matches this view?";
+      cnt=[t].concat(ds).filter(function(g){return sides.every(function(sd){return key(vw(g,sd))===key(vw(t,sd))})}).length;
       items=[t].concat(ds).map(function(g,i){return {html:planSvg(g),ok:i===0}});
     }else{
       var s=["front","right","back","left"][rnd(4)],good=vw(t,s),arrs=[good],seen={};seen[key(good)]=1;
@@ -613,9 +653,10 @@ input[type=text]{font:inherit;color:var(--ink);background:var(--card);border:1.5
       var H2=Math.max(1,Math.max.apply(null,[].concat.apply([],arrs)));
       text="Which picture shows the "+s+" view of this building?";
       prompt=fig(planSvg(t),planCap);
+      cnt=arrs.filter(function(a){return key(a)===key(good)}).length;
       items=arrs.map(function(a,i){return {html:elevation(a,cls(s),"Option",H2,a.D),ok:i===0}});
     }
-    return {text:text,prompt:prompt,items:shuf(items),t:t,cm:cm,done:false};
+    return {text:text,prompt:prompt,items:shuf(items),t:t,cm:cm,done:false,bad:cnt!==1};
   }
   function scoreText(){$("#score").textContent=score.total?"Score "+score.ok+" of "+score.total+", streak "+score.streak:""}
   function ask(){
@@ -642,16 +683,271 @@ input[type=text]{font:inherit;color:var(--ink);background:var(--card);border:1.5
     $("#size").value=String(n);buildPlan();tab(false);
   };
   $("#qtype").onchange=ask;$("#qsize").onchange=ask;
-  function tab(q){var d=(q==="draw"),w=(q==="ws");q=(q===true);$("#ws").hidden=!w;$("#tabW").setAttribute("aria-pressed",String(w));if(w)wsRefresh();$("#draw").hidden=!d;$("#tabD").setAttribute("aria-pressed",String(d));if(d&&!Dr)dNew();
-    Array.prototype.forEach.call(document.querySelectorAll(".ex"),function(el){el.hidden=q||d||w});
+  function tab(q){var d=(q==="draw"),w=(q==="ws"),sk=(q==="sky");q=(q===true);$("#sky").hidden=!sk;$("#tabS").setAttribute("aria-pressed",String(sk));if(sk&&!SK)skNew();$("#ws").hidden=!w;$("#tabW").setAttribute("aria-pressed",String(w));if(w)wsRefresh();$("#draw").hidden=!d;$("#tabD").setAttribute("aria-pressed",String(d));if(d&&!Dr)dNew();
+    Array.prototype.forEach.call(document.querySelectorAll(".ex"),function(el){el.hidden=q||d||w||sk});
     $("#quiz").hidden=!q;
-    $("#tabEx").setAttribute("aria-pressed",String(!q&&!d&&!w));$("#tabQ").setAttribute("aria-pressed",String(q));
+    $("#tabEx").setAttribute("aria-pressed",String(!q&&!d&&!w&&!sk));$("#tabQ").setAttribute("aria-pressed",String(q));
     if(q&&!Q)ask();
   }
-  $("#tabEx").onclick=function(){tab(false)};$("#tabQ").onclick=function(){tab(true)};$("#tabD").onclick=function(){tab("draw")};$("#tabW").onclick=function(){tab("ws")};
+  $("#tabEx").onclick=function(){tab(false)};$("#tabQ").onclick=function(){tab(true)};$("#tabD").onclick=function(){tab("draw")};$("#tabW").onclick=function(){tab("ws")};$("#tabS").onclick=function(){tab("sky")};
+
+  /* ---------- skyscrapers puzzle ---------- */
+  var SK=null,SKS=0,SKSIDES=["t","b","l","r"];
+  function rng(m){var a=[];for(var i=0;i<m;i++)a.push(i);return a}
+  function skVis(a){var mx=0,c=0;a.forEach(function(v){if(v>mx){mx=v;c++}});return c}
+  // the line of heights as seen from a side: t = from the back, b = front, l = left, r = right
+  function skArr(d,i,g){
+    return d==="t"?g.map(function(r){return r[i]}):d==="b"?g.map(function(r){return r[i]}).reverse():d==="l"?g[i].slice():g[i].slice().reverse();
+  }
+  function skClues(g){
+    var cl={t:[],b:[],l:[],r:[]};
+    for(var i=0;i<g.length;i++)SKSIDES.forEach(function(d){cl[d].push(skVis(skArr(d,i,g)))});
+    return cl;
+  }
+  function randomLatin(m){
+    var rp=shuf(rng(m)),cp=shuf(rng(m)),sy=shuf(rng(m).map(function(x){return x+1}));
+    return rp.map(function(r){return cp.map(function(c){return sy[(r+c)%m]})});
+  }
+  function skSolve(n,cl,giv,limit,budget){ // number of solutions up to limit, or -1 if the search got too long
+    var g=giv.map(function(r){return r.slice()}),rm=[],cm=[],cnt=0,nodes=0,over=false,i,j;
+    for(i=0;i<n;i++){rm.push(0);cm.push(0)}
+    for(i=0;i<n;i++)for(j=0;j<n;j++)if(g[i][j]){rm[i]|=1<<g[i][j];cm[j]|=1<<g[i][j]}
+    function ok(r,c){
+      var row=g[r],mx=0,v=0,q;
+      for(q=0;q<=c;q++)if(row[q]>mx){mx=row[q];v++}
+      if(cl.l[r]&&(v>cl.l[r]||v+(n-1-c)<cl.l[r]))return false;
+      if(c===n-1){
+        if(cl.l[r]&&v!==cl.l[r])return false;
+        if(cl.r[r]){mx=0;v=0;for(q=n-1;q>=0;q--)if(row[q]>mx){mx=row[q];v++}if(v!==cl.r[r])return false}
+      }
+      mx=0;v=0;for(q=0;q<=r;q++)if(g[q][c]>mx){mx=g[q][c];v++}
+      if(cl.t[c]&&(v>cl.t[c]||v+(n-1-r)<cl.t[c]))return false;
+      if(r===n-1){
+        if(cl.t[c]&&v!==cl.t[c])return false;
+        if(cl.b[c]){mx=0;v=0;for(q=n-1;q>=0;q--)if(g[q][c]>mx){mx=g[q][c];v++}if(v!==cl.b[c])return false}
+      }
+      return true;
+    }
+    function rec(idx){
+      if(over)return;
+      if(idx===n*n){cnt++;return}
+      var r=(idx/n)|0,c=idx%n;
+      if(giv[r][c]){if(ok(r,c))rec(idx+1);return}
+      for(var v=1;v<=n;v++){
+        if((rm[r]|cm[c])&(1<<v))continue;
+        if(++nodes>budget){over=true;return}
+        g[r][c]=v;rm[r]|=1<<v;cm[c]|=1<<v;
+        if(ok(r,c))rec(idx+1);
+        g[r][c]=0;rm[r]&=~(1<<v);cm[c]&=~(1<<v);
+        if(over||cnt>=limit)return;
+      }
+    }
+    rec(0);
+    return over?-1:cnt;
+  }
+  function skGen(n,diff){
+    var sol=randomLatin(n),cl=skClues(sol),giv=zeros(n),BUD=200000,r,c,k,guard=0;
+    while(skSolve(n,cl,giv,2,BUD)!==1&&guard++<n*n){do{r=rnd(n);c=rnd(n)}while(giv[r][c]);giv[r][c]=sol[r][c]}
+    if(diff==="easy"){for(k=0;k<n;k++){r=rnd(n);c=rnd(n);giv[r][c]=sol[r][c]}}
+    else if(diff==="hard"){
+      var pos=[];
+      SKSIDES.forEach(function(d){for(var i=0;i<n;i++)pos.push([d,i])});
+      shuf(pos).forEach(function(p){
+        var old=cl[p[0]][p[1]];cl[p[0]][p[1]]=0;
+        if(skSolve(n,cl,giv,2,BUD)!==1)cl[p[0]][p[1]]=old;
+      });
+    }
+    return {sol:sol,cl:cl,giv:giv};
+  }
+  function skNew(){
+    var m=+$("#sksize").value,p=skGen(m,$("#skdiff").value);
+    SK={n:m,sol:p.sol,cl:p.cl,giv:p.giv,user:p.giv.map(function(r){return r.slice()}),sel:null,cm:+$("#skcam").value||0,done:false};
+    var html="",n=m,i,j;
+    function clue(d,i2){return SK.cl[d][i2]?'<button class="skk" data-d="'+d+'" data-i="'+i2+'"></button>':'<span></span>'}
+    html+='<span></span>';for(j=0;j<n;j++)html+=clue("t",j);html+='<span></span>';
+    for(i=0;i<n;i++){
+      html+=clue("l",i);
+      for(j=0;j<n;j++)html+='<button class="skc" data-r="'+i+'" data-c="'+j+'"></button>';
+      html+=clue("r",i);
+    }
+    html+='<span></span>';for(j=0;j<n;j++)html+=clue("b",j);html+='<span></span>';
+    $("#skboard").style.gridTemplateColumns="repeat("+(n+2)+",1fr)";
+    $("#skboard").innerHTML=html;
+    SK.cells=Array.prototype.slice.call($("#skboard").querySelectorAll(".skc"));
+    $("#skfb").textContent="";
+    skRefresh();
+  }
+  function skValid(){
+    var n=SK.n,u=SK.user,i,j;
+    for(i=0;i<n;i++){
+      var rs={},cs2={};
+      for(j=0;j<n;j++){if(!u[i][j]||!u[j][i])return false;rs[u[i][j]]=1;cs2[u[j][i]]=1}
+      if(Object.keys(rs).length!==n||Object.keys(cs2).length!==n)return false;
+    }
+    for(i=0;i<n;i++)for(j=0;j<4;j++){var d=SKSIDES[j];if(SK.cl[d][i]&&skVis(skArr(d,i,u))!==SK.cl[d][i])return false}
+    return true;
+  }
+  function skRefresh(){
+    var n=SK.n,u=SK.user,r,c,j;
+    for(r=0;r<n;r++)for(c=0;c<n;c++){
+      var b=SK.cells[r*n+c],v=u[r][c],cf=false;
+      if(v)for(j=0;j<n;j++){if(j!==c&&u[r][j]===v)cf=true;if(j!==r&&u[j][c]===v)cf=true}
+      var hl=SK.sel&&(((SK.sel.d==="t"||SK.sel.d==="b")&&SK.sel.i===c)||((SK.sel.d==="l"||SK.sel.d==="r")&&SK.sel.i===r));
+      b.textContent=v||"";
+      b.className="skc"+(SK.giv[r][c]?" gv":"")+(cf?" cf":"")+(hl?" hl":"");
+      b.style.background=v?"color-mix(in srgb, var(--front) "+Math.round(v/n*70)+"%, var(--card))":"";
+      b.setAttribute("aria-label","Row "+(r+1)+", column "+(c+1)+": "+(v?"height "+v:"empty")+(SK.giv[r][c]?" (given)":""));
+    }
+    Array.prototype.forEach.call($("#skboard").querySelectorAll(".skk"),function(k){
+      var d=k.dataset.d,i=+k.dataset.i,arr=skArr(d,i,u),full=arr.every(function(x){return x>0}),want=SK.cl[d][i];
+      k.textContent=want;
+      k.className="skk"+(SK.sel&&SK.sel.d===d&&SK.sel.i===i?" sel":"")+(full?(skVis(arr)===want?" ok":" bad"):"");
+      k.setAttribute("aria-label","Clue: "+want+" buildings visible from the "+{t:"back",b:"front",l:"left",r:"right"}[d]+", "+(d==="t"||d==="b"?"column ":"row ")+(i+1));
+    });
+    skLine();
+    $("#skiso").innerHTML=isoSvg(u,SK.cm,n);
+    if(!SK.done&&skValid()){
+      SK.done=true;SKS++;
+      $("#skfb").textContent="Solved! Press Open in Explore to see your city from every side.";
+    }
+    $("#skscore").textContent=SKS?"Solved: "+SKS:"";
+  }
+  function skLine(){
+    var el=$("#skline");
+    if(!SK.sel){el.innerHTML='<p class="hint" style="margin:0">Click a number around the edge to see what you would see looking along that row or column.</p>';return}
+    var arr=skArr(SK.sel.d,SK.sel.i,SK.user),n=SK.n,cs=30,pad=6,W=n*cs+2*pad,mx=0,cnt=0,vs=[],s="",k,j;
+    for(k=0;k<n;k++){
+      var v=arr[k],seen=v>mx;
+      if(seen){mx=v;cnt++;vs.push(k)}
+      for(j=0;j<v;j++)s+='<rect class="sq f" style="'+(seen?'':'opacity:.3')+'" x="'+(pad+k*cs)+'" y="'+(pad+(n-1-j)*cs)+'" width="'+cs+'" height="'+cs+'"/>';
+    }
+    vs.forEach(function(q,ii){
+      var nx=ii+1<vs.length?vs[ii+1]:n,y=pad+(n-arr[q])*cs;
+      if(nx>q+1)s+='<line class="ed dsh" x1="'+(pad+(q+1)*cs)+'" x2="'+(pad+nx*cs)+'" y1="'+y+'" y2="'+y+'"/>';
+    });
+    s+='<line class="ground" x1="0" x2="'+W+'" y1="'+(W-pad)+'" y2="'+(W-pad)+'"/>';
+    var side={t:"the back",b:"the front",l:"the left",r:"the right"}[SK.sel.d];
+    el.innerHTML=svgWrap(W,W,s,"A row seen from "+side)+'<p class="hint" style="margin:4px 0 0">Seen from '+side+', you can see <b>'+cnt+'</b> buildings (the clue says '+SK.cl[SK.sel.d][SK.sel.i]+'). The nearest building is on the left; faded ones are hidden.</p>';
+  }
+  function skSet(r,c,v){if(SK.giv[r][c]||v<0||v>SK.n)return;SK.user[r][c]=v;skRefresh()}
+  $("#skcam").innerHTML=CAMS.map(function(c,i){return '<option value="'+i+'">'+c+' corner</option>'}).join("");
+  $("#skcam").onchange=function(){if(SK){SK.cm=+this.value;skRefresh()}};
+  $("#skboard").addEventListener("click",function(e){
+    var c=e.target.closest(".skc"),k=e.target.closest(".skk");
+    if(c){var r0=+c.dataset.r,c0=+c.dataset.c;skSet(r0,c0,(SK.user[r0][c0]+(e.shiftKey?-1:1)+SK.n+1)%(SK.n+1))}
+    else if(k){var d=k.dataset.d,i=+k.dataset.i;SK.sel=(SK.sel&&SK.sel.d===d&&SK.sel.i===i)?null:{d:d,i:i};skRefresh()}
+  });
+  $("#skboard").addEventListener("contextmenu",function(e){
+    var c=e.target.closest(".skc");if(!c)return;
+    e.preventDefault();var r0=+c.dataset.r,c0=+c.dataset.c;
+    skSet(r0,c0,(SK.user[r0][c0]+SK.n)%(SK.n+1));
+  });
+  $("#skboard").addEventListener("keydown",function(e){
+    var c=e.target.closest(".skc");if(!c)return;
+    var r0=+c.dataset.r,c0=+c.dataset.c,n=SK.n,mv=null;
+    if(/^[1-9]$/.test(e.key)){skSet(r0,c0,+e.key);e.preventDefault()}
+    else if(e.key==="0"||e.key==="Backspace"||e.key==="Delete"){skSet(r0,c0,0);e.preventDefault()}
+    else if(e.key==="ArrowLeft")mv=[r0,c0-1];else if(e.key==="ArrowRight")mv=[r0,c0+1];
+    else if(e.key==="ArrowUp")mv=[r0-1,c0];else if(e.key==="ArrowDown")mv=[r0+1,c0];
+    if(mv&&mv[0]>=0&&mv[1]>=0&&mv[0]<n&&mv[1]<n){SK.cells[mv[0]*n+mv[1]].focus();e.preventDefault()}
+  });
+  $("#sknew").onclick=skNew;$("#sksize").onchange=skNew;$("#skdiff").onchange=skNew;
+  $("#skreset").onclick=function(){SK.user=SK.giv.map(function(r){return r.slice()});$("#skfb").textContent="";skRefresh()};
+  $("#skshow").onclick=function(){SK.user=SK.sol.map(function(r){return r.slice()});SK.done=true;$("#skfb").textContent="This is the solution.";skRefresh()};
+  $("#skhint").onclick=function(){
+    var bad=[],n=SK.n;
+    for(var r=0;r<n;r++)for(var c=0;c<n;c++)if(!SK.giv[r][c]&&SK.user[r][c]!==SK.sol[r][c])bad.push([r,c]);
+    if(!bad.length){$("#skfb").textContent="Nothing left to hint.";return}
+    var p=bad[rnd(bad.length)];
+    SK.user[p[0]][p[1]]=SK.sol[p[0]][p[1]];
+    $("#skfb").textContent="Hint: row "+(p[0]+1)+", column "+(p[1]+1)+" has height "+SK.sol[p[0]][p[1]]+".";
+    skRefresh();
+  };
+  $("#skcheck").onclick=function(){
+    var n=SK.n,wrong=0,empty=0;
+    for(var r=0;r<n;r++)for(var c=0;c<n;c++){
+      if(!SK.user[r][c])empty++;else if(SK.user[r][c]!==SK.sol[r][c])wrong++;
+    }
+    $("#skfb").textContent=skValid()?"Solved! Press Open in Explore to see your city from every side."
+      :wrong?wrong+" of your numbers are not right yet.":"No mistakes so far. "+empty+" squares still to fill.";
+  };
+  $("#skopen").onclick=function(){
+    h=SK.user.map(function(r){return r.slice()});n=h.length;
+    $("#size").value=String(n);buildPlan();tab(false);
+  };
 
   /* ---------- scoring, bonus and worksheet ---------- */
-  function distinctOpts(Qq){var seen={};return Qq.items.every(function(it){if(seen[it.html])return false;seen[it.html]=1;return true})}
+  /* Exact picture of an isometric drawing. Every cube face is two triangles of the isometric lattice,
+     so we can say exactly which face covers each triangle (nearer cubes are painted later). */
+  var TLS={};
+  function triPts(k){var a=k.split(","),i=+a[0],j=+a[1];return a[2]==="0"?[[i,j,0],[i+1,j,0],[i+1,j+1,0]]:[[i,j,0],[i+1,j+1,0],[i,j+1,0]]}
+  function triPaint(q){
+    var m=q.length,lab={},own={};
+    for(var R=0;R<m;R++)for(var C=0;C<m;C++)for(var z=0;z<q[R][C];z++){
+      var p=C-z,r=R-z,id=p+","+r;
+      [["f",[p+","+r+",1",(p-1)+","+r+",0"]],
+       ["s",[p+","+r+",0",p+","+(r-1)+",1"]],
+       ["t",[(p-1)+","+(r-1)+",0",(p-1)+","+(r-1)+",1"]]].forEach(function(f){
+        f[1].forEach(function(k){lab[k]=f[0];own[k]=f[0]+id});
+      });
+    }
+    return {lab:lab,own:own};
+  }
+  function triSet(m,hm){
+    var key=m+"x"+hm;if(TLS[key])return TLS[key];
+    var full=[],cand={};
+    for(var r=0;r<m;r++){full.push([]);for(var c=0;c<m;c++)full[r].push(hm)}
+    Object.keys(triPaint(full).lab).forEach(function(k){cand[k]={pl:triPts(k)}});
+    return TLS[key]={cand:cand};
+  }
+  function isoCand(m){return triSet(m,m).cand}
+  function isoVis(g,cm){return withGrid(g,function(){var q=g;for(var i=0;i<cm;i++)q=rotate(q);return triPaint(q).lab})}
+  function isoSig(g,cm){ // two drawings with the same signature look the same in the current style
+    return withGrid(g,function(){
+      var q=g;for(var i=0;i<cm;i++)q=rotate(q);
+      var P=triPaint(q),src=style==="cubes"?P.own:P.lab;
+      var s=Object.keys(src).sort().map(function(k){return k+":"+src[k]}).join(";");
+      if(style!=="cubes"){
+        var m=q.length,top=Math.max(m,maxH()),sol={},das={};
+        featureEdges(q).forEach(function(e){
+          var p=e[0],r=e[1],mx=(p[0]+r[0])/2,my=(p[1]+r[1])/2,mz=(p[2]+r[2])/2,hid=false;
+          for(var t=0.25;t<=m+top+1&&!hid;t+=0.5){
+            var C2=Math.floor(mx+t),R2=Math.floor(my+t),z2=Math.floor(mz+t);
+            if(C2<m&&R2<m&&z2<q[R2][C2])hid=true;
+          }
+          var a=(p[0]-p[2])+","+(p[1]-p[2]),b=(r[0]-r[2])+","+(r[1]-r[2]),k=a<b?a+"|"+b:b+"|"+a;
+          if(hid)das[k]=1;else sol[k]=1;
+        });
+        s+="#"+Object.keys(sol).sort().join(",");
+        if(style==="dashed")s+="#"+Object.keys(das).sort().join(",");
+      }
+      return s;
+    });
+  }
+  function skSvg(n,cl,g,giv){
+    var cs=46,W=(n+2)*cs,s="",i,j;
+    for(i=0;i<n;i++)for(j=0;j<n;j++){
+      var x=(j+1)*cs,y=(i+1)*cs;
+      s+='<rect class="sq" style="fill:'+(giv&&giv[i][j]?'#e6e6e6':'none')+'" x="'+x+'" y="'+y+'" width="'+cs+'" height="'+cs+'"/>';
+      if(g[i][j])s+='<text class="n" style="font-size:22px" x="'+(x+cs/2)+'" y="'+(y+cs/2)+'">'+g[i][j]+'</text>';
+    }
+    function t(v,x,y){return v?'<text class="n" style="font-size:18px;fill:#555" x="'+x+'" y="'+y+'">'+v+'</text>':''}
+    for(j=0;j<n;j++)s+=t(cl.t[j],(j+1)*cs+cs/2,cs/2)+t(cl.b[j],(j+1)*cs+cs/2,(n+1)*cs+cs/2);
+    for(i=0;i<n;i++)s+=t(cl.l[i],cs/2,(i+1)*cs+cs/2)+t(cl.r[i],(n+1)*cs+cs/2,(i+1)*cs+cs/2);
+    return svgWrap(W,W,s,"Skyscrapers puzzle");
+  }
+  function wsSky(tk){
+    var n2=tk.sn;
+    if(!tk.puz)tk.puz=withSeed(tk.seed,function(){return skGen(n2,tk.sdiff)});
+    var P=tk.puz;
+    return {
+      text:"Skyscrapers puzzle ("+n2+"\u00d7"+n2+"). Write a height from 1 to "+n2+" in every empty square so that each row and each column contains every height exactly once. The numbers around the grid tell how many buildings you can see from that side. A taller building hides all shorter ones behind it.",
+      figs:'<p class="hint" style="margin:0">Tips: a clue of 1 means the tallest building (height '+n2+') stands right at the edge. A clue of '+n2+' means every building is visible, so the heights rise from 1 to '+n2+'.</p>',
+      area:skSvg(n2,P.cl,P.giv,P.giv),
+      key:skSvg(n2,P.cl,P.sol,null)
+    };
+  }
+  function distinctOpts(Qq){if(Qq.bad)return false;var seen={};return Qq.items.every(function(it){if(seen[it.html])return false;seen[it.html]=1;return true})}
   function dShow(){$("#dscore").textContent="First tries: "+DS.ok+" of "+DS.total+", streak "+DS.streak+". Points: "+DS.pts}
   function dSolved(){if(!Dr.solved){Dr.solved=true;DS.pts++;dShow()}}
   function minCubes(cp){
@@ -696,7 +992,7 @@ input[type=text]{font:inherit;color:var(--ink);background:var(--card);border:1.5
   }
 
   var WS={bld:[],tasks:[]};
-  var WT=[["d-front","Draw the front view"],["d-right","Draw the right view"],["d-back","Draw the back view"],["d-left","Draw the left view"],["d-iso","Draw an isometric drawing"],["d-hid","Draw a view with hidden edges"],["d-tv","Draw a top view that fits two views"],["d-bp","Fill in a plan that fits two views"],["m-plan-iso","Choose the drawing that matches a plan"],["m-iso-plan","Choose the plan that matches a drawing"],["m-views-plan","Choose the plan that matches views"],["m-plan-view","Choose the view that matches a plan"]];
+  var WT=[["d-front","Draw the front view"],["d-right","Draw the right view"],["d-back","Draw the back view"],["d-left","Draw the left view"],["d-iso","Draw an isometric drawing"],["d-hid","Draw a view with hidden edges"],["d-tv","Draw a top view that fits two views"],["d-bp","Fill in a plan that fits two views"],["m-plan-iso","Choose the drawing that matches a plan"],["m-iso-plan","Choose the plan that matches a drawing"],["m-views-plan","Choose the plan that matches views"],["m-plan-view","Choose the view that matches a plan"],["sky","Skyscrapers puzzle (size and level to the right)"]];
   function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
   function seeded(seed){var a=seed>>>0;return function(){a=(a+0x6D2B79F5)>>>0;var t=a;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296}}
   function withSeed(seed,fn){var old=Math.random;Math.random=seeded(seed);try{return fn()}finally{Math.random=old}}
@@ -726,7 +1022,7 @@ input[type=text]{font:inherit;color:var(--ink);background:var(--card);border:1.5
     for(var r=0;r<m;r++)for(var k=0;k<m;k++)s+='<rect class="sq'+(g[r][k]?' t':'')+'" style="'+(g[r][k]?'':'fill:none')+'" x="'+(p+k*c)+'" y="'+(p+r*c)+'" width="'+c+'" height="'+c+'"/>';
     return svgWrap(m*c+2*p,m*c+2*p,s,"Top view");
   }
-  function wsTask(tk){
+  function wsTask(tk){if(tk.ty==="sky")return wsSky(tk);
     var g=WS.bld[tk.b],m=g.length,H=Math.max(1,withGrid(g,maxH)),ty=tk.ty,nm="Building "+(tk.b+1);
     var planFig=fig(planSvg(g),"<b>"+nm+"</b><br>Front is at the bottom");
     var text="",figs="",area="",key="";
@@ -776,7 +1072,7 @@ input[type=text]{font:inherit;color:var(--ink);background:var(--card);border:1.5
     $("#wsb").innerHTML=WS.bld.map(function(g,i){return '<option value="'+i+'">Building '+(i+1)+'</option>'}).join("");
     $("#wstl").innerHTML=WS.tasks.map(function(tk,i){
       var lab=WT.filter(function(w){return w[0]===tk.ty})[0][1];
-      return '<li>Building '+(tk.b+1)+': '+lab+(tk.ty==="d-iso"?" ("+CAMS[tk.cm].toLowerCase()+")":"")+' <button data-i="'+i+'">Remove</button></li>';
+      return '<li>'+(tk.ty==="sky"?"":"Building "+(tk.b+1)+": ")+lab+(tk.ty==="sky"?" ("+tk.sn+"\u00d7"+tk.sn+", "+tk.sdiff+")":"")+(tk.ty==="d-iso"?" ("+CAMS[tk.cm].toLowerCase()+")":"")+' <button data-i="'+i+'">Remove</button></li>';
     }).join("");
     wsRender();
   }
@@ -784,9 +1080,9 @@ input[type=text]{font:inherit;color:var(--ink);background:var(--card);border:1.5
   $("#wsc").innerHTML=CAMS.map(function(c,i){return '<option value="'+i+'">Isometric: '+c.toLowerCase()+'</option>'}).join("");
   $("#wsAddR").onclick=function(){WS.bld.push(randGrid(Math.max(3,Math.min(5,n))));wsRefresh()};
   $("#wsAddT").onclick=function(){
-    if(!WS.bld.length)return;
+    var isSky=$("#wst").value==="sky";if(!WS.bld.length&&!isSky)return;
     var s1=SIDES[rnd(4)];
-    WS.tasks.push({b:+$("#wsb").value,ty:$("#wst").value,cm:+$("#wsc").value,seed:Math.floor(Math.random()*1e9),sd:SIDES[rnd(4)],
+    WS.tasks.push({b:$("#wst").value==="sky"?-1:+$("#wsb").value,ty:$("#wst").value,cm:+$("#wsc").value,sn:+$("#wss").value,sdiff:$("#wsd").value,seed:Math.floor(Math.random()*1e9),sd:SIDES[rnd(4)],
       sides:[s1,shuf((s1==="front"||s1==="back")?["right","left"]:["front","back"])[0]]});
     wsRefresh();
   };
@@ -831,7 +1127,7 @@ input[type=text]{font:inherit;color:var(--ink);background:var(--card);border:1.5
   }
   // a face is identified by its kind and where it lands on the page, so equal-looking faces share one key
   function fkey(ty,pl){var a=0,b=0;pl.forEach(function(p){a+=p[0]-p[1];b+=p[0]+p[1]-2*p[2]});return ty+a+","+b}
-  function isoCand(m){
+  function isoCandOld(m){
     var o={};
     ["t","f","s"].forEach(function(ty){
       for(var R=0;R<m;R++)for(var C=0;C<m;C++)for(var z=0;z<m;z++){
@@ -840,7 +1136,7 @@ input[type=text]{font:inherit;color:var(--ink);background:var(--card);border:1.5
     });
     return o;
   }
-  function isoVis(g,cm){ // the faces you can actually see from corner cm
+  function isoVisOld(g,cm){ // the faces you can actually see from corner cm
     return withGrid(g,function(){
       var q=g;for(var i=0;i<cm;i++)q=rotate(q);
       var m=q.length,vis={};
@@ -874,7 +1170,7 @@ input[type=text]{font:inherit;color:var(--ink);background:var(--card);border:1.5
     $("#dbrush").hidden=!iso;
     Array.prototype.forEach.call($("#dbrush").querySelectorAll("button"),function(b){b.setAttribute("aria-pressed",String(b.dataset.b===brush))});
     $("#dtext").textContent=iso
-      ?"Draw this building as an isometric picture, seen from the "+CAMS[D.cm].toLowerCase()+" corner. Choose a kind of face, then click the lattice to paint it. Leave out faces you cannot see."
+      ?"Draw this building as an isometric picture, seen from the "+CAMS[D.cm].toLowerCase()+" corner. Choose a colour (top, left or right faces), then click the small triangles to colour them in. Every cube face is made of two triangles. Colour only what you can see: a face that is partly hidden shows just one triangle, or part of one."
       :"Draw the "+D.task+" view of this building, as seen by someone standing at the "+D.task+" of the plan. Click squares to fill them in.";
     $("#dprompt").innerHTML=fig(planSvg(D.t),"<b>Building plan</b><br>Front is at the bottom");
     if(iso){
@@ -884,9 +1180,23 @@ input[type=text]{font:inherit;color:var(--ink);background:var(--card);border:1.5
         var a=sp([i,0,0]),b=sp([i,m,0]),c=sp([0,i,0]),d=sp([m,i,0]);
         s+='<path class="floor" d="M'+a[0]+' '+a[1]+'L'+b[0]+' '+b[1]+'M'+c[0]+' '+c[1]+'L'+d[0]+' '+d[1]+'"/>';
       }
-      Object.keys(D.user).forEach(function(k){var f=D.cand[k];s+='<polygon class="sq '+f.ty+(res&&!D.sol[k]?' ex':'')+'" points="'+pl(f.pl)+'"/>'});
+      Object.keys(D.user).forEach(function(k){s+='<polygon class="mg '+D.user[k]+(res&&D.sol[k]!==D.user[k]?' ex':'')+'" points="'+pl(D.cand[k].pl)+'"/>'});
+      var em={};
+      Object.keys(D.user).forEach(function(k){
+        var f=D.cand[k];
+        for(var e=0;e<3;e++){
+          var p=f.pl[e],q=f.pl[(e+1)%3],a=p[0]+","+p[1],b=q[0]+","+q[1],ek=a<b?a+"|"+b:b+"|"+a;
+          (em[ek]=em[ek]||{p:p,q:q,t:[]}).t.push(D.user[k]);
+        }
+      });
+      var ed="";
+      Object.keys(em).forEach(function(ek){
+        var o=em[ek];
+        if(o.t.length===1||o.t[0]!==o.t[1]){var A=sp(o.p),B=sp(o.q);ed+="M"+A[0].toFixed(1)+" "+A[1].toFixed(1)+"L"+B[0].toFixed(1)+" "+B[1].toFixed(1)}
+      });
+      s+='<path class="ed" d="'+ed+'"/>';
       if(res)Object.keys(D.sol).forEach(function(k){if(!D.user[k])s+='<polygon class="ms" points="'+pl(D.cand[k].pl)+'"/>'});
-      var tg=brush==="e"?Object.keys(D.user):Object.keys(D.cand).filter(function(k){return D.cand[k].ty===brush});
+      var tg=brush==="e"?Object.keys(D.user):Object.keys(D.cand);
       tg.forEach(function(k){s+='<polygon class="hit" data-k="'+k+'" points="'+pl(D.cand[k].pl)+'"/>'});
       $("#dcanvas").innerHTML='<svg width="'+w+'" height="'+hh+'" viewBox="'+(-m*KX-pad)+' '+(-m*KU-pad)+' '+w+' '+hh+'" role="img" aria-label="Drawing area">'+s+'</svg>';
     }else{
@@ -909,8 +1219,8 @@ input[type=text]{font:inherit;color:var(--ink);background:var(--card);border:1.5
   $("#dbrush").addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;brush=b.dataset.b;dRender()});
   $("#dcheck").onclick=function(){if(dCheckX())return;dCheck0();var okk=!Dr.res.ex&&!Dr.res.ms;dScore(okk);if(okk)dSolved()};
   function dCheck0(){
-    var ex=0,ms=0,unit=Dr.task==="iso"?"faces":"squares";
-    Object.keys(Dr.user).forEach(function(k){if(!Dr.sol[k])ex++});
+    var ex=0,ms=0,unit=Dr.task==="iso"?"triangles":"squares";
+    Object.keys(Dr.user).forEach(function(k){if(Dr.sol[k]!==Dr.user[k])ex++});
     Object.keys(Dr.sol).forEach(function(k){if(!Dr.user[k])ms++});
     Dr.res={ex:ex,ms:ms};dRender();
     $("#dfb").textContent=(!ex&&!ms)?"Correct! Your drawing matches the building."
@@ -961,6 +1271,7 @@ input[type=text]{font:inherit;color:var(--ink);background:var(--card);border:1.5
     var t=Dr.task,v;
     if(t==="edges"){v=((Dr.user[k]||0)+1)%3;if(v)Dr.user[k]=v;else delete Dr.user[k]}
     else if(t==="bp"){v=((Dr.user[k]||0)+1)%(Dr.m+1);if(v)Dr.user[k]=v;else delete Dr.user[k]}
+    else if(t==="iso"){if(brush==="e"||Dr.user[k]===brush)delete Dr.user[k];else Dr.user[k]=brush}
     else if(Dr.user[k])delete Dr.user[k];
     else Dr.user[k]=t==="iso"?Dr.cand[k].ty:true;
   }
